@@ -13,11 +13,11 @@ import { Link } from "react-router-dom";
 const RegisterPage = () => {
     return (
         <Box
+            width="100vw"
+            minHeight="100vh"
             display="flex"
             justifyContent="center"
             alignItems="center"
-            minHeight="100vh"
-            minWidth="100vw"
         >
             <Box
                 display="flex"
@@ -26,6 +26,7 @@ const RegisterPage = () => {
                 padding={8}
                 borderRadius={3}
                 border={"1px #afafaf solid"}
+                sx={{ backgroundColor: "#0f0f0f" }}
             >
                 <Stack direction={"column"} spacing={3} width={300}>
                     <Typography variant="h2">Sign Up</Typography>
