@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { Link } from "react-router-dom";
 
-const RegisterPage = () => {
+const LoginPage = () => {
     return (
         <Box
             display="flex"
@@ -28,7 +28,7 @@ const RegisterPage = () => {
                 border={"1px #afafaf solid"}
             >
                 <Stack direction={"column"} spacing={3} width={300}>
-                    <Typography variant="h2">Sign Up</Typography>
+                    <Typography variant="h2">Sign In</Typography>
                     <FormControl>
                         <FormLabel htmlFor="email">Email</FormLabel>
                         <TextField
@@ -39,17 +39,6 @@ const RegisterPage = () => {
                             name="email"
                             autoComplete="email"
                             variant="outlined"
-                        />
-                    </FormControl>
-                    <FormControl>
-                        <FormLabel htmlFor="name">Username</FormLabel>
-                        <TextField
-                            autoComplete="name"
-                            name="name"
-                            required
-                            fullWidth
-                            id="name"
-                            placeholder="johndoe77"
                         />
                     </FormControl>
                     <FormControl>
@@ -65,12 +54,12 @@ const RegisterPage = () => {
                             variant="outlined"
                         />
                     </FormControl>
-                    <Button variant="contained">Sign Up</Button>
+                    <Button variant="contained">Sign In</Button>
                     <Typography variant="body1" sx={{ textAlign: "center" }}>
-                        Already have an account?
+                        Don't have an account yet?
                         <br />
-                        <MuiLink component={Link} to="/login">
-                            Sign In
+                        <MuiLink component={Link} to="/register">
+                            Sign Up
                         </MuiLink>
                     </Typography>
                 </Stack>
@@ -79,4 +68,4 @@ const RegisterPage = () => {
     );
 };
 
-export default RegisterPage;
+export default LoginPage;

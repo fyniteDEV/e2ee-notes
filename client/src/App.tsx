@@ -2,6 +2,7 @@ import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import "./App.css";
 import RegisterPage from "./pages/RegisterPage";
 import { Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
 
 const theme = createTheme({
     palette: {
@@ -15,6 +16,7 @@ function App() {
             <CssBaseline />
             <Routes>
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/login" element={<LoginPage />} />
             </Routes>
         </ThemeProvider>
     );
