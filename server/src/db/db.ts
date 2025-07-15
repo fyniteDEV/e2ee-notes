@@ -14,10 +14,10 @@ export const pool = new Pool({
 export const testConnection = () => {
     pool.query("SELECT 1")
         .then(() => {
-            console.log("connection to database successful");
+            console.log("Connection to database successful");
         })
         .catch((err) => {
-            console.error("failed to connect to database:", err);
+            console.error("Failed to connect to database:", err);
             process.exit(1);
         });
 };

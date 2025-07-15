@@ -20,5 +20,5 @@ app.get("/", (_req, res) => {
 
 app.listen(port, () => {
     db.testConnection();
-    console.log("app listening on port 3500");
+    console.log("Server listening on port", port);
 });
