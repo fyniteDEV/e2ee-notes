@@ -8,9 +8,41 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+import { useRef } from "react";
 import { Link } from "react-router-dom";
+import { AxiosError, isAxiosError } from "axios";
+import { api, type ApiError } from "../lib/axios";
 
 const RegisterPage = () => {
+    const emailRef = useRef<HTMLInputElement>(null);
+    const usernameRef = useRef<HTMLInputElement>(null);
+    const passwordRef = useRef<HTMLInputElement>(null);
+
+    const handleRegister = async () => {
+        const email = emailRef.current?.value;
+        const username = usernameRef.current?.value;
+        const password = passwordRef.current?.value;
+
+        if (!email || !username || !password) {
+            // TODO: show error to the user
+            return console.error("Missing parameters");
+        }
+
+        try {
+            const res = await api.post("/auth/register", {
+                email,
+                username,
+                password,
+            });
+            console.log(res.data);
+        } catch (err) {
+            if (isAxiosError(err)) {
+                const error: AxiosError<ApiError> = err;
+                console.error("Failed to register:", error.response?.data);
+            }
+        }
+    };
+
     return (
         <Box
             width="100vw"
@@ -33,6 +65,7 @@ const RegisterPage = () => {
                     <FormControl>
                         <FormLabel htmlFor="email">Email</FormLabel>
                         <TextField
+                            inputRef={emailRef}
                             required
                             fullWidth
                             id="email"
@@ -45,6 +78,7 @@ const RegisterPage = () => {
                     <FormControl>
                         <FormLabel htmlFor="name">Username</FormLabel>
                         <TextField
+                            inputRef={usernameRef}
                             autoComplete="name"
                             name="name"
                             required
@@ -56,6 +90,7 @@ const RegisterPage = () => {
                     <FormControl>
                         <FormLabel htmlFor="password">Password</FormLabel>
                         <TextField
+                            inputRef={passwordRef}
                             required
                             fullWidth
                             name="password"
@@ -66,7 +101,9 @@ const RegisterPage = () => {
                             variant="outlined"
                         />
                     </FormControl>
-                    <Button variant="contained">Sign Up</Button>
+                    <Button variant="contained" onClick={handleRegister}>
+                        Sign Up
+                    </Button>
                     <Typography variant="body1" sx={{ textAlign: "center" }}>
                         Already have an account?
                         <br />
