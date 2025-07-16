@@ -11,4 +11,5 @@ export const api = axios.create({
 export type ApiError = {
     success: boolean;
     message: string;
+    accessToken?: string;
 };

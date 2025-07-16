@@ -9,8 +9,38 @@ import {
     Typography,
 } from "@mui/material";
 import { Link } from "react-router-dom";
+import { useRef } from "react";
+import { AxiosError, isAxiosError } from "axios";
+import { api, type ApiError } from "../lib/axios";
 
 const LoginPage = () => {
+    const emailRef = useRef<HTMLInputElement>(null);
+    const passwordRef = useRef<HTMLInputElement>(null);
+
+    const handleLogin = async () => {
+        const email = emailRef.current?.value;
+        const password = passwordRef.current?.value;
+
+        if (!email || !password) {
+            // TODO: show error to the user
+            return console.error("Missing parameters");
+        }
+
+        try {
+            const res = await api.post("/auth/login", {
+                email,
+                password,
+            });
+            // TODO: save the token in memory for future use-case
+            console.log(res.data);
+        } catch (err) {
+            if (isAxiosError(err)) {
+                const error: AxiosError<ApiError> = err;
+                console.error("Failed to register:", error.response?.data);
+            }
+        }
+    };
+
     return (
         <Box
             width="100vw"
@@ -33,6 +63,7 @@ const LoginPage = () => {
                     <FormControl>
                         <FormLabel htmlFor="email">Email</FormLabel>
                         <TextField
+                            inputRef={emailRef}
                             required
                             fullWidth
                             id="email"
@@ -45,6 +76,7 @@ const LoginPage = () => {
                     <FormControl>
                         <FormLabel htmlFor="password">Password</FormLabel>
                         <TextField
+                            inputRef={passwordRef}
                             required
                             fullWidth
                             name="password"
@@ -55,7 +87,9 @@ const LoginPage = () => {
                             variant="outlined"
                         />
                     </FormControl>
-                    <Button variant="contained">Sign In</Button>
+                    <Button variant="contained" onClick={handleLogin}>
+                        Sign In
+                    </Button>
                     <Typography variant="body1" sx={{ textAlign: "center" }}>
                         Don't have an account yet?
                         <br />

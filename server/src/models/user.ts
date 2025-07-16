@@ -14,10 +14,15 @@ export const createUser = async (
     try {
         const res = await pool.query(query, values);
         return res.rows[0];
-    } catch (error) {}
+    } catch (err) {
+        console.error(
+            "An error occurred while executing the database query: " + err
+        );
+        throw err;
+    }
 };
 
-export const findUserByEmailOrUsername = async (
+export const getUserByEmailOrUsername = async (
     email: string,
     username: string
 ) => {
@@ -26,6 +31,24 @@ export const findUserByEmailOrUsername = async (
         WHERE email = $1 OR username = $2;
     `;
     const values = [email, username];
+
+    try {
+        const res = await pool.query(query, values);
+        return res.rows[0];
+    } catch (err) {
+        console.error(
+            "An error occurred while executing the database query: " + err
+        );
+        throw err;
+    }
+};
+
+export const getUserByEmail = async (email: string) => {
+    const query = `
+        SELECT * FROM users
+        WHERE email = $1;
+    `;
+    const values = [email];
 
     try {
         const res = await pool.query(query, values);
