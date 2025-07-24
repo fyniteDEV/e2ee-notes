@@ -8,7 +8,7 @@ export const api = axios.create({
     },
 });
 
-export type ApiError = {
+export type ApiResponse = {
     success: boolean;
     message: string;
     accessToken?: string;

@@ -1,4 +1,5 @@
 import {
+    Alert,
     Box,
     Button,
     FormControl,
@@ -8,15 +9,20 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { useRef } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { AxiosError, isAxiosError } from "axios";
-import { api, type ApiError } from "../lib/axios";
+import { api, type ApiResponse } from "../lib/axios";
 
 const RegisterPage = () => {
     const emailRef = useRef<HTMLInputElement>(null);
     const usernameRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
+
+    const navigate = useNavigate();
+    const [success, setSuccess] = useState(false);
+    const [error, setError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
 
     const handleRegister = async () => {
         const email = emailRef.current?.value;
@@ -24,10 +30,11 @@ const RegisterPage = () => {
         const password = passwordRef.current?.value;
 
         if (!email || !username || !password) {
-            // TODO: show error to the user
+            handleError("Please fill out all fields");
             return console.error("Missing parameters");
         }
 
+        setError(false);
         try {
             const res = await api.post("/auth/register", {
                 email,
@@ -35,13 +42,44 @@ const RegisterPage = () => {
                 password,
             });
             console.log(res.data);
+            if (res.data.success) {
+                handleSuccess();
+            } else {
+                handleError(res.data.message);
+            }
         } catch (err) {
             if (isAxiosError(err)) {
-                const error: AxiosError<ApiError> = err;
+                console.error(err.message);
+                const error: AxiosError<ApiResponse> = err;
                 console.error("Failed to register:", error.response?.data);
+                handleError(error.response?.data.message || err.message);
+            } else {
+                handleError("An unexpected error occured");
             }
         }
     };
+
+    // not all of us can
+    const handleSuccess = () => {
+        setSuccess(true);
+        setError(false);
+    };
+
+    const handleError = (message: string) => {
+        setSuccess(false);
+        setError(true);
+        setErrorMessage(message);
+    };
+
+    useEffect(() => {
+        if (success) {
+            const timeout = setTimeout(() => {
+                navigate("/login");
+            }, 3000);
+
+            return () => clearTimeout(timeout);
+        }
+    }, [success]);
 
     return (
         <Box
@@ -62,6 +100,24 @@ const RegisterPage = () => {
             >
                 <Stack direction={"column"} spacing={3} width={300}>
                     <Typography variant="h2">Sign Up</Typography>
+                    <Alert
+                        severity="success"
+                        variant="outlined"
+                        sx={{
+                            display: success ? "" : "none",
+                        }}
+                    >
+                        Registration successful! Redirecting to login...
+                    </Alert>
+                    <Alert
+                        severity="error"
+                        variant="outlined"
+                        sx={{
+                            display: error ? "" : "none",
+                        }}
+                    >
+                        {errorMessage}
+                    </Alert>
                     <FormControl>
                         <FormLabel htmlFor="email">Email</FormLabel>
                         <TextField
@@ -73,6 +129,7 @@ const RegisterPage = () => {
                             name="email"
                             autoComplete="email"
                             variant="outlined"
+                            disabled={success}
                         />
                     </FormControl>
                     <FormControl>
@@ -85,6 +142,7 @@ const RegisterPage = () => {
                             fullWidth
                             id="name"
                             placeholder="johndoe77"
+                            disabled={success}
                         />
                     </FormControl>
                     <FormControl>
@@ -99,6 +157,7 @@ const RegisterPage = () => {
                             id="password"
                             autoComplete="new-password"
                             variant="outlined"
+                            disabled={success}
                         />
                     </FormControl>
                     <Button variant="contained" onClick={handleRegister}>
