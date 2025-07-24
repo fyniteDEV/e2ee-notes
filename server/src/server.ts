@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
+import morgan from "morgan";
 import * as db from "./db/db";
 import cors from "cors";
 
@@ -17,6 +18,8 @@ app.use(
         credentials: true,
     })
 );
+app.use(morgan("tiny"));
+
 app.use(express.json());
 
 // Routes
