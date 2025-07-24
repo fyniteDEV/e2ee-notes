@@ -35,6 +35,23 @@ const theme = createTheme({
             disabledBackground: "#222222",
         },
     },
+    components: {
+        MuiAppBar: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: "black",
+                },
+            },
+        },
+        MuiDrawer: {
+            styleOverrides: {
+                paper: {
+                    backgroundColor: "#000000",
+                    color: "#ffffff",
+                },
+            },
+        },
+    },
 });
 
 function App() {

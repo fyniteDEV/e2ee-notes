@@ -1,0 +1,9 @@
+.note-content-textarea:hover {
+    border-color: #fff;
+    
+}
+.note-content-textarea:focus {
+    outline: none;
+    border: #fff 1.5px solid !important;
+    box-shadow: none;
+}
