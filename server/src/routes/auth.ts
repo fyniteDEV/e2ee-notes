@@ -7,11 +7,24 @@ import dotenv from "dotenv";
 const authRouter = Router();
 dotenv.config();
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+
 authRouter.post("/register", async (req, res) => {
     if (!req.body.username || !req.body.email || !req.body.password) {
         return res.status(400).json({
             success: false,
-            message: "Invalid request: missing parameters",
+            message: "Invalid request: Missing parameters",
+        });
+    } else if (
+        !emailRegex.test(req.body.email) ||
+        !usernameRegex.test(req.body.username) ||
+        !passwordRegex.test(req.body.password)
+    ) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid request: Invalid parameter formats",
         });
     }
 
