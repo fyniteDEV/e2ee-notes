@@ -59,7 +59,6 @@ const RegisterPage = () => {
         }
     };
 
-    // not all of us can
     const handleSuccess = () => {
         setSuccess(true);
         setError(false);

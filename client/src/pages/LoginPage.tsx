@@ -1,4 +1,5 @@
 import {
+    Alert,
     Box,
     Button,
     FormControl,
@@ -8,21 +9,29 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { Link } from "react-router-dom";
-import { useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { AxiosError, isAxiosError } from "axios";
-import { api, type ApiError } from "../lib/axios";
+import { api, type ApiResponse } from "../lib/axios";
+import { useAuth } from "../AuthProvider";
 
 const LoginPage = () => {
     const emailRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
+
+    const auth = useAuth();
+
+    const navigate = useNavigate();
+    const [success, setSuccess] = useState(false);
+    const [error, setError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
 
     const handleLogin = async () => {
         const email = emailRef.current?.value;
         const password = passwordRef.current?.value;
 
         if (!email || !password) {
-            // TODO: show error to the user
+            handleError("Please fill out all fields");
             return console.error("Missing parameters");
         }
 
@@ -31,15 +40,41 @@ const LoginPage = () => {
                 email,
                 password,
             });
-            // TODO: save the token in memory for future use-case
-            console.log(res.data);
+            if (res.data.success) {
+                auth.setAccessToken(res.data.accessToken);
+                console.log(res.data);
+                handleSuccess();
+            } else {
+                handleError(res.data.message);
+            }
         } catch (err) {
             if (isAxiosError(err)) {
-                const error: AxiosError<ApiError> = err;
-                console.error("Failed to register:", error.response?.data);
+                const error: AxiosError<ApiResponse> = err;
+                console.error("Failed to sign in:", error.response?.data);
+                handleError(error.response?.data.message || err.message);
+            } else {
+                handleError("An unexpected error occured");
             }
         }
     };
+
+    const handleSuccess = () => {
+        setSuccess(true);
+        setError(false);
+    };
+
+    const handleError = (message: string) => {
+        setSuccess(false);
+        setError(true);
+        setErrorMessage(message);
+    };
+
+    useEffect(() => {
+        if (success && auth.accessToken !== null) {
+            console.log("AT", auth.accessToken);
+            navigate("/note");
+        }
+    }, [success]);
 
     return (
         <Box
@@ -60,6 +95,24 @@ const LoginPage = () => {
             >
                 <Stack direction={"column"} spacing={3} width={300}>
                     <Typography variant="h2">Sign In</Typography>
+                    <Alert
+                        severity="success"
+                        variant="outlined"
+                        sx={{
+                            display: success ? "" : "none",
+                        }}
+                    >
+                        Login successful
+                    </Alert>
+                    <Alert
+                        severity="error"
+                        variant="outlined"
+                        sx={{
+                            display: error ? "" : "none",
+                        }}
+                    >
+                        {errorMessage}
+                    </Alert>
                     <FormControl>
                         <FormLabel htmlFor="email">Email</FormLabel>
                         <TextField
@@ -71,6 +124,7 @@ const LoginPage = () => {
                             name="email"
                             autoComplete="email"
                             variant="outlined"
+                            disabled={success}
                         />
                     </FormControl>
                     <FormControl>
@@ -85,6 +139,7 @@ const LoginPage = () => {
                             id="password"
                             autoComplete="new-password"
                             variant="outlined"
+                            disabled={success}
                         />
                     </FormControl>
                     <Button variant="contained" onClick={handleLogin}>
