@@ -3,9 +3,13 @@ import bcrypt from "bcrypt";
 import * as userModel from "../models/user";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { RefreshToken } from "../types";
 
 const authRouter = Router();
 dotenv.config();
+
+const ACCCESS_TOKEN_SECRET = process.env.ACCCESS_TOKEN_SECRET!;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
@@ -87,26 +91,92 @@ authRouter.post("/login", async (req, res) => {
             email: foundUser.email,
             username: foundUser.username,
         },
-        process.env.ACCCESS_TOKEN_SECRET!,
+        ACCCESS_TOKEN_SECRET,
         { expiresIn: "5m" }
     );
     const refreshToken = jwt.sign(
         {
-            id: foundUser.id,
+            sub: foundUser.id,
+            logged_in_at: Math.floor(Date.now() / 1000),
         },
-        process.env.REFRESH_TOKEN_SECRET!,
+        REFRESH_TOKEN_SECRET,
         { expiresIn: "5d" }
     );
 
     res.cookie("jwt", refreshToken, {
         httpOnly: true,
-        path: "/auth/refresh",
+        path: "/auth/renew",
         maxAge: 5 * 24 * 60 * 60 * 1000,
     }).json({ success: true, message: "Login successful", accessToken });
 });
 
-authRouter.get("/renew", (req, res) => {
-    res.sendStatus(500);
+authRouter.get("/renew", async (req, res) => {
+    console.log(req.cookies);
+    const token = req.cookies.jwt;
+
+    if (!token) {
+        return res.status(401).json({
+            success: false,
+            message: "Refresh token missing from cookies",
+        });
+    }
+
+    try {
+        const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET) as RefreshToken;
+        const userId = decoded.sub.toString();
+        const loggedInAt = decoded.logged_in_at;
+
+        const foundUser = await userModel.getUserById(userId!);
+        if (!foundUser) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid refresh token",
+            });
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const twoWeeks = 14 * 24 * 60 * 60;
+        if (loggedInAt + twoWeeks > now) {
+            return res.status(403).json({
+                success: false,
+                message: "Session expired. Please log in again.",
+            });
+        }
+
+        const accessToken = jwt.sign(
+            {
+                id: foundUser.id,
+                email: foundUser.email,
+                username: foundUser.username,
+            },
+            ACCCESS_TOKEN_SECRET!,
+            { expiresIn: "5m" }
+        );
+        const refreshToken = jwt.sign(
+            {
+                sub: foundUser.id,
+                logged_in_at: loggedInAt,
+            },
+            REFRESH_TOKEN_SECRET!,
+            { expiresIn: "5d" }
+        );
+
+        res.cookie("jwt", refreshToken, {
+            httpOnly: true,
+            path: "/auth/renew",
+            maxAge: 5 * 24 * 60 * 60 * 1000,
+        }).json({
+            success: true,
+            message: "Token renewal successful",
+            accessToken,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(401).json({
+            success: false,
+            message: "Invalid refresh token",
+        });
+    }
 });
 
 export default authRouter;

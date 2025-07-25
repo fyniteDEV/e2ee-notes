@@ -60,3 +60,21 @@ export const getUserByEmail = async (email: string) => {
         throw err;
     }
 };
+
+export const getUserById = async (id: string) => {
+    const query = `
+        SELECT * FROM users
+        WHERE id = $1;
+    `;
+    const values = [id];
+
+    try {
+        const res = await pool.query(query, values);
+        return res.rows[0];
+    } catch (err) {
+        console.error(
+            "An error occurred while executing the database query: " + err
+        );
+        throw err;
+    }
+};
