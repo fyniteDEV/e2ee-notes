@@ -7,6 +7,8 @@ const LandingPage = () => {
         <Box
             sx={{
                 backgroundImage: `url(${bg_img})`,
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "cover",
                 backgroundPosition: "left top",
             }}
             width="100vw"
