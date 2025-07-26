@@ -1,6 +1,6 @@
 import { Box, Typography, TextField, Stack, Button } from "@mui/material";
 import "../App.css";
-import { type Note } from "../types/note";
+import { type Note } from "../types";
 import { CloudSync, DeleteForever } from "@mui/icons-material";
 import { api } from "../lib/axios";
 import { useAuth } from "../AuthProvider";
@@ -68,7 +68,7 @@ const NoteEditor = ({
                             />
                         </Box>
                         <Typography variant="caption" mt={2}>
-                            {new Date(note.createdAt).toLocaleString()}
+                            {new Date(note.created_at).toLocaleString()}
                         </Typography>
                         <Box gap={1} display="flex" flexDirection="row">
                             <Button

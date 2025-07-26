@@ -97,7 +97,7 @@ authRouter.post("/login", async (req, res) => {
     const refreshToken = jwt.sign(
         {
             sub: foundUser.id,
-            logged_in_at: Math.floor(Date.now() / 1000),
+            logged_in_at: Date.now(),
         },
         REFRESH_TOKEN_SECRET,
         { expiresIn: "5d" }
@@ -134,9 +134,10 @@ authRouter.get("/renew", async (req, res) => {
             });
         }
 
-        const now = Math.floor(Date.now() / 1000);
-        const twoWeeks = 14 * 24 * 60 * 60;
-        if (loggedInAt + twoWeeks > now) {
+        const now = Date.now();
+        const twoWeeks = 14 * 24 * 60 * 60 * 1000;
+        if (loggedInAt + twoWeeks < now) {
+            console.log(now, twoWeeks, loggedInAt);
             return res.status(403).json({
                 success: false,
                 message: "Session expired. Please log in again.",

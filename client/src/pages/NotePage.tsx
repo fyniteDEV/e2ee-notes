@@ -18,67 +18,26 @@ import {
     Toolbar,
     Drawer,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../App.css";
-import { type Note } from "../types/note";
+import { type Note } from "../types";
 import NoteEditor from "../components/NoteEditor";
+import { useAuth } from "../AuthProvider";
+import { api } from "../lib/axios";
+import { useNavigate } from "react-router-dom";
 
 const NotePage = () => {
     const [notes, setNotes] = useState<Note[]>([
         {
             id: 1,
-            title: "First Note",
-            content: `Iure sint delectus dicta omnis eum vero sed dolorem. Sunt quo veritatis sit voluptatem in odio. Sunt et autem exercitationem. Asperiores vel incidunt et vel sequi nihil.
-
-Velit at est doloribus ea debitis. Quo incidunt quae eum pariatur. Accusantium exercitationem sunt et ut et. Est in et excepturi deserunt aut. Atque porro numquam quaerat id rerum et. Aut ut molestiae nemo eius odio nihil.
-
-Aliquid ut nam expedita eligendi est laborum autem. Molestias et excepturi aut nemo eos quam. Officia dolores labore suscipit est minima voluptas dolorem distinctio. Magni dolores sapiente omnis delectus. Ducimus deserunt dolorem laborum ex et.
-
-Praesentium quos rem reiciendis voluptate voluptatibus porro quas earum. Suscipit dolorem quibusdam aut ipsum molestiae molestiae. Quis non et adipisci qui harum. Autem aut et deleniti nam ratione voluptates amet.
-
-Beatae molestias voluptatem est amet dolor eaque magnam et. Quas ea eum quia quo. Laborum a doloribus quis explicabo ratione odio. Ea eligendi culpa omnis vitae distinctio. Perferendis dolorem accusantium odit ad. Aut debitis nam quia ducimus similique dicta necessitatibus.
-Iure sint delectus dicta omnis eum vero sed dolorem. Sunt quo veritatis sit voluptatem in odio. Sunt et autem exercitationem. Asperiores vel incidunt et vel sequi nihil.
-
-Velit at est doloribus ea debitis. Quo incidunt quae eum pariatur. Accusantium exercitationem sunt et ut et. Est in et excepturi deserunt aut. Atque porro numquam quaerat id rerum et. Aut ut molestiae nemo eius odio nihil.
-
-Aliquid ut nam expedita eligendi est laborum autem. Molestias et excepturi aut nemo eos quam. Officia dolores labore suscipit est minima voluptas dolorem distinctio. Magni dolores sapiente omnis delectus. Ducimus deserunt dolorem laborum ex et.
-
-Praesentium quos rem reiciendis voluptate voluptatibus porro quas earum. Suscipit dolorem quibusdam aut ipsum molestiae molestiae. Quis non et adipisci qui harum. Autem aut et deleniti nam ratione voluptates amet.
-
-Beatae molestias voluptatem est amet dolor eaque magnam et. Quas ea eum quia quo. Laborum a doloribus quis explicabo ratione odio. Ea eligendi culpa omnis vitae distinctio. Perferendis dolorem accusantium odit ad. Aut debitis nam quia ducimus similique dicta necessitatibus.Iure sint delectus dicta omnis eum vero sed dolorem. Sunt quo veritatis sit voluptatem in odio. Sunt et autem exercitationem. Asperiores vel incidunt et vel sequi nihil.
-
-Velit at est doloribus ea debitis. Quo incidunt quae eum pariatur. Accusantium exercitationem sunt et ut et. Est in et excepturi deserunt aut. Atque porro numquam quaerat id rerum et. Aut ut molestiae nemo eius odio nihil.
-
-Aliquid ut nam expedita eligendi est laborum autem. Molestias et excepturi aut nemo eos quam. Officia dolores labore suscipit est minima voluptas dolorem distinctio. Magni dolores sapiente omnis delectus. Ducimus deserunt dolorem laborum ex et.
-
-Praesentium quos rem reiciendis voluptate voluptatibus porro quas earum. Suscipit dolorem quibusdam aut ipsum molestiae molestiae. Quis non et adipisci qui harum. Autem aut et deleniti nam ratione voluptates amet.
-
-Beatae molestias voluptatem est amet dolor eaque magnam et. Quas ea eum quia quo. Laborum a doloribus quis explicabo ratione odio. Ea eligendi culpa omnis vitae distinctio. Perferendis dolorem accusantium odit ad. Aut debitis nam quia ducimus similique dicta necessitatibus.Iure sint delectus dicta omnis eum vero sed dolorem. Sunt quo veritatis sit voluptatem in odio. Sunt et autem exercitationem. Asperiores vel incidunt et vel sequi nihil.
-
-Velit at est doloribus ea debitis. Quo incidunt quae eum pariatur. Accusantium exercitationem sunt et ut et. Est in et excepturi deserunt aut. Atque porro numquam quaerat id rerum et. Aut ut molestiae nemo eius odio nihil.
-
-Aliquid ut nam expedita eligendi est laborum autem. Molestias et excepturi aut nemo eos quam. Officia dolores labore suscipit est minima voluptas dolorem distinctio. Magni dolores sapiente omnis delectus. Ducimus deserunt dolorem laborum ex et.
-
-Praesentium quos rem reiciendis voluptate voluptatibus porro quas earum. Suscipit dolorem quibusdam aut ipsum molestiae molestiae. Quis non et adipisci qui harum. Autem aut et deleniti nam ratione voluptates amet.
-
-Beatae molestias voluptatem est amet dolor eaque magnam et. Quas ea eum quia quo. Laborum a doloribus quis explicabo ratione odio. Ea eligendi culpa omnis vitae distinctio. Perferendis dolorem accusantium odit ad. Aut debitis nam quia ducimus similique dicta necessitatibus.`,
-            createdAt: new Date().toISOString(),
-        },
-        {
-            id: 2,
-            title: "Note 2",
-            content: "Fhuu very big.",
-            createdAt: new Date().toISOString(),
-        },
-        {
-            id: 3,
-            title: "Damn boah",
-            content: "afhasofhosaphfouiafhsahf.",
-            createdAt: new Date().toISOString(),
+            title: "",
+            content: "",
+            created_at: new Date().toISOString(),
         },
     ]);
     const [selectedNoteId, setSelectedNoteId] = useState(1);
     const selectedNote = notes.find((note) => note.id === selectedNoteId);
+
     const [drawerOpen, setDrawerOpen] = useState(false);
 
     const [invalidTitle, setInvalidTitle] = useState(false);
@@ -86,6 +45,36 @@ Beatae molestias voluptatem est amet dolor eaque magnam et. Quas ea eum quia quo
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+    const navigate = useNavigate();
+    const auth = useAuth();
+
+    useEffect(() => {
+        if (auth.accessToken === null) {
+            navigate("/login");
+            return;
+        }
+
+        const fetchAllNotes = async () => {
+            try {
+                const res = await api.protected.get(
+                    "/api/notes",
+                    auth.accessToken!
+                );
+                if (res.data.success) {
+                    console.log(res.data.notes);
+                    return res.data.notes;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        const loadAllNotes = async () => {
+            setNotes(await fetchAllNotes());
+        };
+        loadAllNotes();
+    }, []);
 
     const handleSelectNote = (id: number) => {
         setDrawerOpen(false);
@@ -130,7 +119,7 @@ Beatae molestias voluptatem est amet dolor eaque magnam et. Quas ea eum quia quo
             id: Date.now(),
             title: "New Note",
             content: "",
-            createdAt: new Date().toISOString(),
+            created_at: new Date().toISOString(),
         };
         setNotes((prevNotes) => [...prevNotes, newNote]);
         setSelectedNoteId(newNote.id);
@@ -183,32 +172,37 @@ Beatae molestias voluptatem est amet dolor eaque magnam et. Quas ea eum quia quo
             {/* scrollable list */}
             <Box flexGrow={1} overflow="auto">
                 <List>
-                    {notes.map((note) => (
-                        <ListItem
-                            sx={{
-                                bgcolor:
-                                    note.id === selectedNoteId ? "#222" : "",
-                            }}
-                            key={note.id}
-                            disablePadding
-                            onClick={() => handleSelectNote(note.id)}
-                        >
-                            <ListItemButton
+                    {notes
+                        .slice()
+                        .reverse()
+                        .map((note) => (
+                            <ListItem
                                 sx={{
-                                    height: 50,
+                                    bgcolor:
+                                        note.id === selectedNoteId
+                                            ? "#222"
+                                            : "",
                                 }}
+                                key={note.id}
+                                disablePadding
+                                onClick={() => handleSelectNote(note.id)}
                             >
-                                <ListItemText
-                                    primary={note.title}
-                                    slotProps={{
-                                        primary: {
-                                            noWrap: true,
-                                        },
+                                <ListItemButton
+                                    sx={{
+                                        height: 50,
                                     }}
-                                />
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
+                                >
+                                    <ListItemText
+                                        primary={note.title}
+                                        slotProps={{
+                                            primary: {
+                                                noWrap: true,
+                                            },
+                                        }}
+                                    />
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
                 </List>
             </Box>
 

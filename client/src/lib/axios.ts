@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const api = axios.create({
+const baseApi = axios.create({
     baseURL: import.meta.env.VITE_SRV_BASE_URL,
     withCredentials: true,
     headers: {
@@ -8,8 +8,15 @@ export const api = axios.create({
     },
 });
 
-export type ApiResponse = {
-    success: boolean;
-    message: string;
-    accessToken?: string;
-};
+export const api = Object.assign(baseApi, {
+    protected: {
+        get: (url: string, accessToken: string) => {
+            return baseApi.get(url, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+        },
+    },
+});

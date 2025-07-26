@@ -12,8 +12,9 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { AxiosError, isAxiosError } from "axios";
-import { api, type ApiResponse } from "../lib/axios";
+import { api } from "../lib/axios";
 import { useAuth } from "../AuthProvider";
+import { type ApiResponse } from "../types";
 
 const LoginPage = () => {
     const emailRef = useRef<HTMLInputElement>(null);

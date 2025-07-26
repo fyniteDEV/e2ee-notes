@@ -12,7 +12,8 @@ import {
 import { useRef, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AxiosError, isAxiosError } from "axios";
-import { api, type ApiResponse } from "../lib/axios";
+import { api } from "../lib/axios";
+import { type ApiResponse } from "../types";
 
 const RegisterPage = () => {
     const emailRef = useRef<HTMLInputElement>(null);
