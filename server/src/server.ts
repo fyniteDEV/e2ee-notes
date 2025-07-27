@@ -10,14 +10,23 @@ import authRouter from "./routes/auth";
 import notesRouter from "./routes/notes";
 
 const app = express();
-const port = process.env.port || 3500;
+const port = process.env.PORT || 3500;
 
+// ERROR HANDLING
 process.on("uncaughtException", (err) => {
     console.error("Uncaught Exception:", err);
 });
-
 process.on("unhandledRejection", (reason, promise) => {
     console.error("Unhandled Rejection:", reason);
+});
+process.on("SIGINT", () => {
+    console.log("Received SIGINT, shutting down.");
+    process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+    console.log("Received SIGTERM, shutting down.");
+    process.exit(0);
 });
 
 // Middlewares
