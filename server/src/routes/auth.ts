@@ -97,7 +97,7 @@ authRouter.post("/login", async (req, res) => {
     const refreshToken = jwt.sign(
         {
             sub: foundUser.id,
-            logged_in_at: Date.now(),
+            logged_in_at: Math.floor(Date.now() / 1000),
         },
         REFRESH_TOKEN_SECRET,
         { expiresIn: "5d" }
@@ -106,7 +106,7 @@ authRouter.post("/login", async (req, res) => {
     res.cookie("jwt", refreshToken, {
         httpOnly: true,
         path: "/auth/renew",
-        maxAge: 5 * 24 * 60 * 60 * 1000,
+        maxAge: 5 * 24 * 60 * 60,
     }).json({ success: true, message: "Login successful", accessToken });
 });
 
@@ -134,8 +134,8 @@ authRouter.get("/renew", async (req, res) => {
             });
         }
 
-        const now = Date.now();
-        const twoWeeks = 14 * 24 * 60 * 60 * 1000;
+        const now = Math.floor(Date.now() / 1000);
+        const twoWeeks = 14 * 24 * 60 * 60;
         if (loggedInAt + twoWeeks < now) {
             console.log(now, twoWeeks, loggedInAt);
             return res.status(403).json({
