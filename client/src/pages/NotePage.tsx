@@ -25,6 +25,8 @@ import NoteEditor from "../components/NoteEditor";
 import { useAuth } from "../AuthProvider";
 import { api } from "../lib/axios";
 import { useNavigate } from "react-router-dom";
+import { accessTokenIsExpired, handleTokenRenew } from "../lib/authTools";
+import AlertSnackbar from "../components/AlertSnackbar";
 
 const NotePage = () => {
     const [notes, setNotes] = useState<Note[]>([
@@ -43,38 +45,83 @@ const NotePage = () => {
     const [invalidTitle, setInvalidTitle] = useState(false);
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertMessage, setAlertMessage] = useState(
+        "An unexpected error occured."
+    );
+    const [alertSeverity, setAlertSeverity] = useState<"success" | "error">(
+        "error"
+    );
+
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
     const navigate = useNavigate();
     const auth = useAuth();
 
+    // load all notes
     useEffect(() => {
-        if (auth.accessToken === null) {
-            navigate("/login");
-            return;
-        }
-
-        const fetchAllNotes = async () => {
-            try {
-                const res = await api.protected.get(
-                    "/api/notes",
-                    auth.accessToken!
-                );
-                if (res.data.success) {
-                    console.log(res.data.notes);
-                    return res.data.notes;
+        const handleNoAccessToken = async () => {
+            if (!auth.accessToken) {
+                try {
+                    await handleTokenRenew(auth);
+                } catch (err) {
+                    console.error("Unable to refresh access token:", err);
+                    navigate("/login");
+                    return;
                 }
-            } catch (err) {
-                console.error(err);
             }
         };
 
         const loadAllNotes = async () => {
             setNotes(await fetchAllNotes());
         };
+
+        handleNoAccessToken();
         loadAllNotes();
     }, []);
+
+    useEffect(() => {
+        const loadAllNotes = async () => {
+            setNotes(await fetchAllNotes());
+        };
+        loadAllNotes();
+    }, [auth.accessToken]);
+
+    const fetchAllNotes = async () => {
+        if (accessTokenIsExpired(auth.accessToken!)) {
+            try {
+                await handleTokenRenew(auth);
+            } catch (err) {
+                console.error("Unable to refresh access token:", err);
+                handleNewAlert("Unable to refresh access token", "error");
+                navigate("/login");
+                return;
+            }
+        }
+
+        try {
+            const res = await api.protected.get(
+                "/api/notes",
+                auth.accessToken!
+            );
+            if (res.data.success) {
+                console.log(res.data.notes);
+                return res.data.notes;
+            } else {
+                handleNewAlert(
+                    "Unable to load notes. Please try logging in again.",
+                    "error"
+                );
+            }
+        } catch (err) {
+            console.error(err);
+            handleNewAlert(
+                "Unable to load notes. Please try logging in again.",
+                "error"
+            );
+        }
+    };
 
     const handleSelectNote = (id: number) => {
         setDrawerOpen(false);
@@ -144,6 +191,12 @@ const NotePage = () => {
 
             return updatedNotes;
         });
+    };
+
+    const handleNewAlert = (message: string, severity: "success" | "error") => {
+        setAlertMessage(message);
+        setAlertSeverity(severity);
+        setAlertOpen(true);
     };
 
     const drawerContent = (
@@ -243,6 +296,12 @@ const NotePage = () => {
                                 invalidTitle={invalidTitle}
                             />
                         </Box>
+                        <AlertSnackbar
+                            message={alertMessage}
+                            severity={alertSeverity}
+                            open={alertOpen}
+                            setOpen={setAlertOpen}
+                        />
                     </>
                 ) : (
                     // mobile layout

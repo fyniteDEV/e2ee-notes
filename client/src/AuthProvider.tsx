@@ -1,6 +1,6 @@
 import { useState, createContext, type ReactNode, useContext } from "react";
 
-type AuthContextType = {
+export type AuthContextType = {
     accessToken: string | null;
     setAccessToken: React.Dispatch<React.SetStateAction<string | null>>;
 };
