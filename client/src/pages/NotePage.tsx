@@ -174,6 +174,17 @@ const NotePage = () => {
     };
 
     const handleDeleteNote = async () => {
+        if (accessTokenIsExpired(auth.accessToken!)) {
+            try {
+                await handleTokenRenew(auth);
+            } catch (err) {
+                console.error("Unable to refresh access token:", err);
+                setConfirmDialogOpen(false);
+                handleNewAlert("Unable to refresh access token", "error");
+                return;
+            }
+        }
+
         // send request to server
         try {
             const res = await api.protected.delete(
