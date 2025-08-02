@@ -42,7 +42,6 @@ const RegisterPage = () => {
                 username,
                 password,
             });
-            console.log(res.data);
             if (res.data.success) {
                 handleSuccess();
             } else {

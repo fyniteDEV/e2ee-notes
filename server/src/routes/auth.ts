@@ -111,7 +111,6 @@ authRouter.post("/login", async (req, res) => {
 });
 
 authRouter.get("/renew", async (req, res) => {
-    console.log(req.cookies);
     const token = req.cookies.jwt;
 
     if (!token) {
@@ -137,7 +136,6 @@ authRouter.get("/renew", async (req, res) => {
         const now = Math.floor(Date.now() / 1000);
         const twoWeeks = 14 * 24 * 60 * 60;
         if (loggedInAt + twoWeeks < now) {
-            console.log(now, twoWeeks, loggedInAt);
             return res.status(403).json({
                 success: false,
                 message: "Session expired. Please log in again.",

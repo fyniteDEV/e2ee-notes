@@ -29,8 +29,6 @@ export const authenticateAccessToken = (
             email: decoded.email,
             username: decoded.username,
         };
-
-        console.log(decoded);
     } catch (err) {
         return res.status(401).json({
             success: false,

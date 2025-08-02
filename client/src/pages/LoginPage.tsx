@@ -43,7 +43,6 @@ const LoginPage = () => {
             });
             if (res.data.success) {
                 auth.setAccessToken(res.data.accessToken);
-                console.log(res.data);
                 handleSuccess();
             } else {
                 handleError(res.data.message);
