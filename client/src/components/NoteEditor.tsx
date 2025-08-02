@@ -2,8 +2,6 @@ import { Box, Typography, TextField, Stack, Button } from "@mui/material";
 import "../App.css";
 import { type Note } from "../types";
 import { CloudSync, DeleteForever } from "@mui/icons-material";
-import { api } from "../lib/axios";
-import { useAuth } from "../AuthProvider";
 
 interface Props {
     note: Note | undefined;
@@ -20,23 +18,6 @@ const NoteEditor = ({
     onContentChange,
     onDeleteButtonClick,
 }: Props) => {
-    const auth = useAuth();
-
-    const handleTokenRenew = async () => {
-        try {
-            const res = await api.get("/auth/renew");
-            if (res.data.success) {
-                auth.setAccessToken(res.data.accessToken);
-                console.log(res.data);
-                // handleSuccess();
-            } else {
-                // handleError(res.data.message);
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
     return (
         <>
             {note ? (
@@ -89,15 +70,6 @@ const NoteEditor = ({
                                 onClick={onDeleteButtonClick}
                             >
                                 Delete
-                            </Button>
-                            <Button
-                                size="small"
-                                color="info"
-                                loadingPosition="center"
-                                variant="outlined"
-                                onClick={handleTokenRenew}
-                            >
-                                Renew token
                             </Button>
                         </Box>
                     </Box>
