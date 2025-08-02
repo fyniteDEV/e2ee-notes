@@ -18,5 +18,13 @@ export const api = Object.assign(baseApi, {
                 },
             });
         },
+        delete: (url: string, accessToken: string) => {
+            return baseApi.delete(url, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+        },
     },
 });

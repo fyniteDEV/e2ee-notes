@@ -20,4 +20,24 @@ notesRouter.get(
     }
 );
 
+notesRouter.delete(
+    "/:noteId",
+    authenticateAccessToken,
+    async (req: ProtectedRequest, res) => {
+        const noteId = parseInt(req.params.noteId);
+        try {
+            await noteModel.deleteNote(noteId, req.userData!.id);
+            res.json({
+                success: true,
+                message: "Note successfully deleted.",
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Internal Server Error",
+            });
+        }
+    }
+);
+
 export default notesRouter;

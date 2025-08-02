@@ -40,3 +40,21 @@ export const createNote = async (
         throw err;
     }
 };
+
+export const deleteNote = async (id: number, userId: string) => {
+    const query = `
+         DELETE FROM notes
+         WHERE id = $1 AND user_id = $2; 
+    `;
+    const values = [id, userId];
+
+    try {
+        const res = await pool.query(query, values);
+        return res.rows[0];
+    } catch (err) {
+        console.error(
+            "An error occurred while executing the database query: " + err
+        );
+        throw err;
+    }
+};

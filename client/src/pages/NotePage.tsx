@@ -173,7 +173,30 @@ const NotePage = () => {
         setDrawerOpen(false);
     };
 
-    const handleDeleteNote = () => {
+    const handleDeleteNote = async () => {
+        // send request to server
+        try {
+            const res = await api.protected.delete(
+                `/api/notes/${selectedNoteId}`,
+                auth.accessToken!
+            );
+            if (!res.data.success) {
+                handleNewAlert(
+                    "Unable to load notes. Please try logging in again.",
+                    "error"
+                );
+            }
+        } catch (err) {
+            console.error(err);
+            handleNewAlert(
+                "Failed delete note from the server. Please try again later.",
+                "error"
+            );
+            setConfirmDialogOpen(false);
+            return;
+        }
+
+        // update on the front-end
         setConfirmDialogOpen(false);
         setNotes((prevNotes) => {
             const index = prevNotes.findIndex((n) => n.id === selectedNoteId);
