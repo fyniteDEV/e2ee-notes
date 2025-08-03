@@ -8,6 +8,7 @@ interface Props {
     invalidTitle: boolean;
     onTitleChange: (title: string) => void;
     onContentChange: (content: string) => void;
+    onSave: () => void;
     onDeleteButtonClick: () => void;
 }
 
@@ -16,6 +17,7 @@ const NoteEditor = ({
     invalidTitle,
     onTitleChange,
     onContentChange,
+    onSave,
     onDeleteButtonClick,
 }: Props) => {
     return (
@@ -58,6 +60,7 @@ const NoteEditor = ({
                                 loadingPosition="start"
                                 startIcon={<CloudSync />}
                                 variant="outlined"
+                                onClick={onSave}
                             >
                                 Save
                             </Button>

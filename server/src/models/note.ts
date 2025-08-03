@@ -58,3 +58,27 @@ export const deleteNote = async (id: number, userId: string) => {
         throw err;
     }
 };
+
+export const updateNote = async (
+    title: string,
+    content: string,
+    noteId: number,
+    userId: string
+) => {
+    const query = `
+        UPDATE notes
+        SET title = $1, content = $2
+        WHERE id = $3 AND user_id = $4;
+    `;
+    const values = [title, content, noteId, userId];
+
+    try {
+        const res = await pool.query(query, values);
+        return res.rows[0];
+    } catch (err) {
+        console.error(
+            "An error occurred while executing the database query: " + err
+        );
+        throw err;
+    }
+};

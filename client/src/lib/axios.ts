@@ -26,5 +26,21 @@ export const api = Object.assign(baseApi, {
                 },
             });
         },
+        post: (url: string, body: {}, accessToken: string) => {
+            return baseApi.post(url, body, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+        },
+        put: (url: string, body: {}, accessToken: string) => {
+            return baseApi.put(url, body, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+        },
     },
 });

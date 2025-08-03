@@ -60,6 +60,7 @@ const NotePage = () => {
     const auth = useAuth();
 
     // load all notes
+    // FIXME: set the initial selected note the last added note
     useEffect(() => {
         const handleNoAccessToken = async () => {
             if (!auth.accessToken) {
@@ -94,9 +95,7 @@ const NotePage = () => {
                 await handleTokenRenew(auth);
             } catch (err) {
                 console.error("Unable to refresh access token:", err);
-                handleNewAlert("Unable to refresh access token", "error");
-                navigate("/login");
-                return;
+                return navigate("/login");
             }
         }
 
@@ -125,6 +124,8 @@ const NotePage = () => {
 
     const handleSelectNote = (id: number) => {
         setDrawerOpen(false);
+        handleSaveNote();
+
         if (selectedNote?.title === "") {
             return setInvalidTitle(true);
         }
@@ -173,6 +174,38 @@ const NotePage = () => {
         setDrawerOpen(false);
     };
 
+    const handleSaveNote = async () => {
+        if (accessTokenIsExpired(auth.accessToken!)) {
+            try {
+                await handleTokenRenew(auth);
+            } catch (err) {
+                console.error("Unable to refresh access token:", err);
+                return handleNewAlert(
+                    "Unable to refresh access token. Try logging in again.",
+                    "error"
+                );
+            }
+        }
+
+        console.log(auth.accessToken);
+
+        try {
+            const res = await api.protected.put(
+                "/api/notes",
+                {
+                    title: selectedNote?.title,
+                    content: selectedNote?.content,
+                    noteId: selectedNote?.id,
+                },
+                auth.accessToken!
+            );
+            handleNewAlert("Note saved", "success");
+        } catch (err) {
+            console.error(err);
+            handleNewAlert("Failed to save note. Try again later.", "error");
+        }
+    };
+
     const handleDeleteNote = async () => {
         if (accessTokenIsExpired(auth.accessToken!)) {
             try {
@@ -180,7 +213,10 @@ const NotePage = () => {
             } catch (err) {
                 console.error("Unable to refresh access token:", err);
                 setConfirmDialogOpen(false);
-                handleNewAlert("Unable to refresh access token", "error");
+                handleNewAlert(
+                    "Unable to refresh access token. Try logging in again.",
+                    "error"
+                );
                 return;
             }
         }
@@ -328,6 +364,7 @@ const NotePage = () => {
                                     setConfirmDialogOpen(true)
                                 }
                                 invalidTitle={invalidTitle}
+                                onSave={handleSaveNote}
                             />
                         </Box>
                         <AlertSnackbar
@@ -366,6 +403,7 @@ const NotePage = () => {
                                     setConfirmDialogOpen(true)
                                 }
                                 invalidTitle={invalidTitle}
+                                onSave={handleSaveNote}
                             />
                         </Box>
                     </>
