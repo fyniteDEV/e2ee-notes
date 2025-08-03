@@ -157,20 +157,43 @@ const NotePage = () => {
         );
     };
 
-    const handleAddNote = () => {
+    const handleAddNote = async () => {
         if (selectedNote?.title === "") {
             setDrawerOpen(false);
             return setInvalidTitle(true);
         }
 
-        const newNote: Note = {
-            id: Date.now(),
-            title: "New Note",
-            content: "",
-            created_at: new Date().toISOString(),
-        };
-        setNotes((prevNotes) => [...prevNotes, newNote]);
-        setSelectedNoteId(newNote.id);
+        if (accessTokenIsExpired(auth.accessToken!)) {
+            try {
+                await handleTokenRenew(auth);
+            } catch (err) {
+                console.error("Unable to refresh access token:", err);
+                return handleNewAlert(
+                    "Unable to refresh access token. Try logging in again.",
+                    "error"
+                );
+            }
+        }
+
+        try {
+            const res = await api.protected.post(
+                "/api/notes",
+                {},
+                auth.accessToken!
+            );
+            console.log("res", res.data);
+
+            const newNote: Note = res.data.notes[0];
+            setNotes((prevNotes) => [...prevNotes, newNote]);
+            setSelectedNoteId(newNote.id);
+        } catch (err) {
+            console.error(err);
+            return handleNewAlert(
+                "Failed to create new note. Try again later.",
+                "error"
+            );
+        }
+
         setDrawerOpen(false);
     };
 
@@ -187,10 +210,8 @@ const NotePage = () => {
             }
         }
 
-        console.log(auth.accessToken);
-
         try {
-            const res = await api.protected.put(
+            await api.protected.put(
                 "/api/notes",
                 {
                     title: selectedNote?.title,

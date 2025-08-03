@@ -25,8 +25,9 @@ export const createNote = async (
     content: string
 ) => {
     const query = `
-        INSERT INTO notes (user_id, title, content, created_at)
+        INSERT INTO notes (user_id, title, content)
         VALUES ($1, $2, $3)
+        RETURNING id, title, content, created_at
     `;
     const values = [userId, title, content];
 
