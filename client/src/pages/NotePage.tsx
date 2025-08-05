@@ -31,13 +31,13 @@ import AlertSnackbar from "../components/AlertSnackbar";
 const NotePage = () => {
     const [notes, setNotes] = useState<Note[]>([
         {
-            id: 1,
+            id: -1,
             title: "",
             content: "",
             created_at: new Date().toISOString(),
         },
     ]);
-    const [selectedNoteId, setSelectedNoteId] = useState(1);
+    const [selectedNoteId, setSelectedNoteId] = useState(-1);
     const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -60,7 +60,6 @@ const NotePage = () => {
     const auth = useAuth();
 
     // load all notes
-    // FIXME: set the initial selected note the last added note
     useEffect(() => {
         const handleNoAccessToken = async () => {
             if (!auth.accessToken) {
@@ -88,6 +87,13 @@ const NotePage = () => {
         };
         loadAllNotes();
     }, [auth.accessToken]);
+
+    // set initial selected note to the last added one
+    useEffect(() => {
+        if (selectedNoteId === -1) {
+            setSelectedNoteId(notes[notes.length - 1].id);
+        }
+    }, [notes]);
 
     const fetchAllNotes = async () => {
         if (accessTokenIsExpired(auth.accessToken!)) {
@@ -198,6 +204,11 @@ const NotePage = () => {
     };
 
     const handleSaveNote = async () => {
+        console.log(selectedNoteId);
+        if (selectedNoteId === -1) {
+            return;
+        }
+
         if (accessTokenIsExpired(auth.accessToken!)) {
             try {
                 await handleTokenRenew(auth);
