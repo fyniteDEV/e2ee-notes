@@ -81,6 +81,7 @@ const NotePage = () => {
         loadAllNotes();
     }, []);
 
+    // FIXME: if there are no available notes it crashes
     useEffect(() => {
         const loadAllNotes = async () => {
             setNotes(await fetchAllNotes());
@@ -301,6 +302,29 @@ const NotePage = () => {
         setAlertOpen(true);
     };
 
+    const handleLogout = async () => {
+        if (accessTokenIsExpired(auth.accessToken!)) {
+            try {
+                await handleTokenRenew(auth);
+            } catch (err) {
+                console.error("Unable to refresh access token:", err);
+                return handleNewAlert(
+                    "Unable to refresh access token. Try reloading the page.",
+                    "error"
+                );
+            }
+        }
+
+        try {
+            await api.protected.post("/auth/logout", {}, auth.accessToken!);
+            auth.setAccessToken(null);
+            navigate("/");
+        } catch (err) {
+            console.error(err);
+            handleNewAlert("Failed to log out. Try again later.", "error");
+        }
+    };
+
     const drawerContent = (
         <Box
             width={300}
@@ -368,9 +392,7 @@ const NotePage = () => {
                     variant="outlined"
                     fullWidth
                     startIcon={<Logout />}
-                    onClick={() => {
-                        console.log("Logout");
-                    }}
+                    onClick={handleLogout}
                 >
                     Logout
                 </Button>

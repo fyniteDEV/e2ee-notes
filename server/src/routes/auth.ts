@@ -1,9 +1,12 @@
-import Router from "express";
+import Router, { Response } from "express";
 import bcrypt from "bcrypt";
 import * as userModel from "../models/user";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { RefreshToken } from "../types";
+import { ProtectedRequest, RefreshToken } from "../types";
+import { authenticateAccessToken } from "../middleware/authMiddleware";
+import * as refreshTokenModel from "../models/refreshToken";
+import crypto from "crypto";
 
 const authRouter = Router();
 dotenv.config();
@@ -14,6 +17,17 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
 const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
+
+function saveRefreshTokenToDB(refreshToken: string, userId: string) {
+    const refreshTokenHash = crypto
+        .createHash("sha256")
+        .update(refreshToken)
+        .digest("hex");
+    const expiresAt = new Date(
+        new Date().getTime() + 5 * 24 * 60 * 60 * 1000
+    ).toISOString();
+    refreshTokenModel.addRefreshToken(userId, refreshTokenHash, expiresAt);
+}
 
 authRouter.post("/register", async (req, res) => {
     if (!req.body.username || !req.body.email || !req.body.password) {
@@ -103,9 +117,11 @@ authRouter.post("/login", async (req, res) => {
         { expiresIn: "5d" }
     );
 
+    saveRefreshTokenToDB(refreshToken, foundUser.id);
+
     res.cookie("jwt", refreshToken, {
         httpOnly: true,
-        path: "/auth/renew",
+        path: "/auth",
         maxAge: 5 * 24 * 60 * 60,
     }).json({ success: true, message: "Login successful", accessToken });
 });
@@ -125,6 +141,7 @@ authRouter.get("/renew", async (req, res) => {
         const userId = decoded.sub.toString();
         const loggedInAt = decoded.logged_in_at;
 
+        // check token validity
         const foundUser = await userModel.getUserById(userId!);
         if (!foundUser) {
             return res.status(401).json({
@@ -133,6 +150,7 @@ authRouter.get("/renew", async (req, res) => {
             });
         }
 
+        // check session expiration
         const now = Math.floor(Date.now() / 1000);
         const twoWeeks = 14 * 24 * 60 * 60;
         if (loggedInAt + twoWeeks < now) {
@@ -140,6 +158,24 @@ authRouter.get("/renew", async (req, res) => {
                 success: false,
                 message: "Session expired. Please log in again.",
             });
+        }
+
+        // revoke refresh token used
+        const refreshTokenHash = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+        const foundToken = await refreshTokenModel.getEntryByTokenHash(
+            refreshTokenHash
+        );
+        if (foundToken) {
+            if (foundToken.revoked) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Invalid refresh token",
+                });
+            }
+            refreshTokenModel.revokeRefreshToken(refreshTokenHash);
         }
 
         const accessToken = jwt.sign(
@@ -160,9 +196,11 @@ authRouter.get("/renew", async (req, res) => {
             { expiresIn: "5d" }
         );
 
+        saveRefreshTokenToDB(refreshToken, foundUser.id);
+
         res.cookie("jwt", refreshToken, {
             httpOnly: true,
-            path: "/auth/renew",
+            path: "/auth",
             maxAge: 5 * 24 * 60 * 60 * 1000,
         }).json({
             success: true,
@@ -177,5 +215,31 @@ authRouter.get("/renew", async (req, res) => {
         });
     }
 });
+
+authRouter.post(
+    "/logout",
+    authenticateAccessToken,
+    (req: ProtectedRequest, res: Response) => {
+        const token = req.cookies.jwt;
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Refresh token missing from cookies",
+            });
+        }
+
+        const refreshTokenHash = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+        refreshTokenModel.revokeRefreshToken(refreshTokenHash);
+
+        res.json({
+            success: true,
+            message: "User logout successful",
+        });
+    }
+);
 
 export default authRouter;

@@ -71,7 +71,7 @@ const LandingPage = () => {
                         >
                             Start app now
                         </Button>
-                        <Button
+                        {/* <Button
                             component={Link}
                             to="/about"
                             variant="outlined"
@@ -85,7 +85,7 @@ const LandingPage = () => {
                             }}
                         >
                             See how it works
-                        </Button>
+                        </Button> */}
                     </Stack>
                 </Stack>
             </Box>
