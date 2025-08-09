@@ -57,7 +57,7 @@ const LandingPage = () => {
                     >
                         <Button
                             component={Link}
-                            to="/register"
+                            to="/note"
                             variant="contained"
                             color="primary"
                             sx={{
@@ -69,23 +69,8 @@ const LandingPage = () => {
                                 },
                             }}
                         >
-                            Start app now
+                            Start now
                         </Button>
-                        {/* <Button
-                            component={Link}
-                            to="/about"
-                            variant="outlined"
-                            color="secondary"
-                            sx={{
-                                width: { xs: "100%", sm: "200px" },
-                                "&:hover": {
-                                    color: "action.active",
-                                    textDecoration: "none",
-                                },
-                            }}
-                        >
-                            See how it works
-                        </Button> */}
                     </Stack>
                 </Stack>
             </Box>
