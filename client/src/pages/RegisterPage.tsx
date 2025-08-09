@@ -74,7 +74,7 @@ const RegisterPage = () => {
         if (success) {
             const timeout = setTimeout(() => {
                 navigate("/login");
-            }, 3000);
+            }, 1000);
 
             return () => clearTimeout(timeout);
         }
@@ -129,6 +129,11 @@ const RegisterPage = () => {
                             autoComplete="email"
                             variant="outlined"
                             disabled={success}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleRegister();
+                                }
+                            }}
                         />
                     </FormControl>
                     <FormControl>
@@ -142,6 +147,11 @@ const RegisterPage = () => {
                             id="name"
                             placeholder="johndoe77"
                             disabled={success}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleRegister();
+                                }
+                            }}
                         />
                     </FormControl>
                     <FormControl>
@@ -157,6 +167,11 @@ const RegisterPage = () => {
                             autoComplete="new-password"
                             variant="outlined"
                             disabled={success}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleRegister();
+                                }
+                            }}
                         />
                     </FormControl>
                     <Button variant="contained" onClick={handleRegister}>

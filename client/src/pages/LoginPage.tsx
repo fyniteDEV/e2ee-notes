@@ -125,6 +125,11 @@ const LoginPage = () => {
                             autoComplete="email"
                             variant="outlined"
                             disabled={success}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleLogin();
+                                }
+                            }}
                         />
                     </FormControl>
                     <FormControl>
@@ -140,6 +145,11 @@ const LoginPage = () => {
                             autoComplete="new-password"
                             variant="outlined"
                             disabled={success}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleLogin();
+                                }
+                            }}
                         />
                     </FormControl>
                     <Button variant="contained" onClick={handleLogin}>
