@@ -81,7 +81,6 @@ const NotePage = () => {
         loadAllNotes();
     }, []);
 
-    // FIXME: if there are no available notes it crashes
     useEffect(() => {
         const loadAllNotes = async () => {
             setNotes(await fetchAllNotes());
@@ -91,7 +90,7 @@ const NotePage = () => {
 
     // set initial selected note to the last added one
     useEffect(() => {
-        if (selectedNoteId === -1) {
+        if (selectedNoteId === -1 && notes.length >= 1) {
             setSelectedNoteId(notes[notes.length - 1].id);
         }
     }, [notes]);
