@@ -23,3 +23,18 @@ export interface ProtectedRequest extends Request {
         username: string;
     };
 }
+
+export interface RegisterPayload {
+    username: string;
+    email: string;
+    password: string;
+    wrappedMasterKey: string;
+    kekSalt: string;
+    kdf: {
+        name: "PBKDF2";
+        hash: "SHA-256";
+        iterations: number;
+    };
+    wrapAlgorithm: "AES_GCM";
+    wrapIV: string;
+}

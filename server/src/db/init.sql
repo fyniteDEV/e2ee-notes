@@ -3,6 +3,16 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+
+    -- wrapped master key and metadata
+    master_wrapped_pass TEXT NOT NULL,
+    kdf_name TEXT NOT NULL DEFAULT 'PBKDF2',
+    kdf_hash TEXT NOT NULL DEFAULT 'SHA-256',
+    kdf_iterations INT NOT NULL,
+    kek_salt TEXT NOT NULL,
+    wrap_algorithm TEXT NOT NULL DEFAULT 'AES-GCM',
+    wrap_iv TEXT, -- may not be needed depending on algorithm
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

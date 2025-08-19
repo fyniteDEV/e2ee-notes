@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import * as userModel from "../models/user";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { ProtectedRequest, RefreshToken } from "../types";
+import { ProtectedRequest, RefreshToken, RegisterPayload } from "../types";
 import { authenticateAccessToken } from "../middleware/authMiddleware";
 import * as refreshTokenModel from "../models/refreshToken";
 import crypto from "crypto";
@@ -29,49 +29,88 @@ function saveRefreshTokenToDB(refreshToken: string, userId: string) {
     refreshTokenModel.addRefreshToken(userId, refreshTokenHash, expiresAt);
 }
 
-authRouter.post("/register", async (req, res) => {
-    if (!req.body.username || !req.body.email || !req.body.password) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid request: Missing parameters",
-        });
-    } else if (
-        !emailRegex.test(req.body.email) ||
-        !usernameRegex.test(req.body.username) ||
-        !passwordRegex.test(req.body.password)
-    ) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid request: Invalid parameter formats",
-        });
+function isRegisterPayload(payload: unknown): payload is RegisterPayload {
+    console.log(payload);
+
+    if (typeof payload !== "object" || payload === null) {
+        return false;
     }
 
-    const [passwordHash, foundUser] = await Promise.all([
-        bcrypt.hash(req.body.password, 12),
-        userModel.getUserByEmailOrUsername(req.body.email, req.body.username),
-    ]);
+    const obj = payload as Record<string, unknown>;
 
-    if (foundUser) {
-        return res.status(400).json({
-            success: false,
-            message: "Username or email already taken",
-        });
-    }
-
-    const newUser = userModel.createUser(
-        req.body.email,
-        req.body.username,
-        passwordHash
+    return (
+        typeof obj.username === "string" &&
+        typeof obj.email === "string" &&
+        typeof obj.password === "string" &&
+        typeof obj.wrappedMasterKey === "string" &&
+        typeof obj.kekSalt === "string" &&
+        typeof obj.wrapIV === "string" &&
+        obj.wrapAlgorithm === "AES-GCM" &&
+        typeof obj.kdf === "object" &&
+        obj.kdf !== null &&
+        (obj.kdf as any).name === "PBKDF2" &&
+        (obj.kdf as any).hash === "SHA-256" &&
+        typeof (obj.kdf as any).iterations === "number"
     );
-    if (!newUser) {
-        return res
-            .status(500)
-            .json({ success: false, message: "Internal server error" });
+}
+
+authRouter.post("/register", async (req, res) => {
+    const payload = req.body;
+
+    if (isRegisterPayload(payload)) {
+        // check user credentials' validity
+        if (
+            !emailRegex.test(payload.email) ||
+            !usernameRegex.test(payload.username) ||
+            !passwordRegex.test(payload.password)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid request: Invalid user credential formats",
+            });
+        }
+
+        console.log(payload);
+
+        const [passwordHash, foundUser] = await Promise.all([
+            bcrypt.hash(payload.password, 12),
+            userModel.getUserByEmailOrUsername(payload.email, payload.username),
+        ]);
+
+        if (foundUser) {
+            return res.status(400).json({
+                success: false,
+                message: "Username or email already taken",
+            });
+        }
+
+        const newUser = userModel.createUser(
+            payload.email,
+            payload.username,
+            passwordHash,
+            payload.wrappedMasterKey,
+            payload.kdf.name,
+            payload.kdf.hash,
+            payload.kdf.iterations,
+            payload.wrapAlgorithm,
+            payload.kekSalt,
+            payload.wrapIV
+        );
+        if (!newUser) {
+            return res
+                .status(500)
+                .json({ success: false, message: "Internal server error" });
+        }
+        res.json({
+            success: true,
+            message: "Registration successful",
+        });
+    } else {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid request: Missing or invalid parameters",
+        });
     }
-    res.json({
-        success: true,
-        message: "Registration successful",
-    });
 });
 
 authRouter.post("/login", async (req, res) => {

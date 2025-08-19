@@ -3,13 +3,34 @@ import { pool } from "../db/db";
 export const createUser = async (
     email: string,
     username: string,
-    passwordHash: string
+    passwordHash: string,
+    wrappedMasterKey: string,
+    kdfName: string,
+    kdfHash: string,
+    kdfIterations: number,
+    wrapAlgorithm: string,
+    kekSalt: string,
+    wrapIV: string
 ) => {
     const query = `
-        INSERT INTO users (email, username, password_hash)
-        VALUES ($1, $2, $3);
+        INSERT INTO users (
+            email, username, password_hash, master_wrapped_pass,
+            kdf_name, kdf_hash, kdf_iterations, kek_salt,
+            wrap_algorithm, wrap_iv)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
     `;
-    const values = [email, username, passwordHash];
+    const values = [
+        email,
+        username,
+        passwordHash,
+        wrappedMasterKey,
+        kdfName,
+        kdfHash,
+        kdfIterations,
+        kekSalt,
+        wrapAlgorithm,
+        wrapIV,
+    ];
 
     try {
         const res = await pool.query(query, values);

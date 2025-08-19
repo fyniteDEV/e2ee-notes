@@ -11,3 +11,8 @@ export type ApiResponse = {
     accessToken?: string;
     notes?: Note[];
 };
+
+export interface WrappedMasterKey {
+    wrapped: ArrayBuffer;
+    iv: Uint8Array<ArrayBuffer>;
+}

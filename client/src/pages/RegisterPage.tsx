@@ -14,6 +14,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { AxiosError, isAxiosError } from "axios";
 import { api } from "../lib/axios";
 import { type ApiResponse } from "../types";
+import { initOnRegister } from "../lib/encryptionTools";
 
 const RegisterPage = () => {
     const emailRef = useRef<HTMLInputElement>(null);
@@ -35,12 +36,15 @@ const RegisterPage = () => {
             return console.error("Missing parameters");
         }
 
+        const cryptoRes = await initOnRegister(password);
+
         setError(false);
         try {
             const res = await api.post("/auth/register", {
                 email,
                 username,
                 password,
+                ...cryptoRes,
             });
             if (res.data.success) {
                 handleSuccess();
