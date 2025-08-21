@@ -69,7 +69,7 @@ const NotePage = () => {
                 try {
                     await handleTokenRenew(auth);
                     const masterKey =
-                        await encryptionTools.unwrapMasterWithDeviceKEK();
+                        await encryptionTools.handleNoAccessTokenLogin();
                     masterKeyProvider.provideKey(masterKey);
                 } catch (err) {
                     console.error("An error occured", err);
@@ -325,7 +325,7 @@ const NotePage = () => {
             await api.protected.post("/auth/logout", {}, auth.accessToken!);
             auth.setAccessToken(null);
             masterKeyProvider.clearKey();
-            // TODO: wipe wrapped_master_dev and KEK_device
+            await encryptionTools.handleLogout();
             navigate("/");
         } catch (err) {
             console.error(err);

@@ -4,6 +4,7 @@ import {
     storeDeviceKey,
     getWrappedMasterKey,
     storeWrappedMasterKey,
+    clearKeys,
 } from "./indexedDbHelpers";
 
 // ## ON REGISTER ##
@@ -87,7 +88,7 @@ const wrapMasterWithPasswordKEK = async (
     };
 };
 
-export const initOnRegister = async (password: string) => {
+export const handleRegister = async (password: string) => {
     const K_master = await generateMasterKey();
     console.log(K_master);
     const passKEKObject = await generatePasswordKEK(password);
@@ -183,8 +184,26 @@ const wrapAndStoreMasterWithDeviceKEK = async (
     }
 };
 
+export const handleLogin = async (
+    encryption: EncryptionDataBase64,
+    password: string
+) => {
+    const K_master = await unwrapMasterWithPassword(encryption, password);
+    console.log(K_master);
+
+    const KEK_device = await generateDeviceKEK();
+    // console.log("device key generated", KEK_device);
+    await storeDeviceKey(KEK_device);
+    // console.log("device key stored");
+    await wrapAndStoreMasterWithDeviceKEK(K_master, KEK_device);
+    // console.log("master key wrapped and stored");
+
+    // console.log("K_MASTER", K_master);
+    return K_master;
+};
+
 // Unwrap for logging in without access token (refresh token used)
-export const unwrapMasterWithDeviceKEK = async (): Promise<CryptoKey> => {
+export const handleNoAccessTokenLogin = async (): Promise<CryptoKey> => {
     const KEK_device = await getDeviceKey();
     if (!KEK_device) {
         throw new Error("Device key missing");
@@ -204,28 +223,15 @@ export const unwrapMasterWithDeviceKEK = async (): Promise<CryptoKey> => {
     return K_master;
 };
 
-export const handleLogin = async (
-    encryption: EncryptionDataBase64,
-    password: string
-) => {
-    const K_master = await unwrapMasterWithPassword(encryption, password);
-    console.log(K_master);
+// ## ON LOGOUT ##
 
-    const KEK_device = await generateDeviceKEK();
-    // console.log("device key generated", KEK_device);
-    await storeDeviceKey(KEK_device);
-    // console.log("device key stored");
-    await wrapAndStoreMasterWithDeviceKEK(K_master, KEK_device);
-    // console.log("master key wrapped and stored");
-
-    // console.log("K_MASTER", K_master);
-    return K_master;
+export const handleLogout = async () => {
+    await clearKeys();
 };
 
-// TODO: wipe keys on device on logout
-
 export default {
-    initOnRegister,
+    handleRegister,
     handleLogin,
-    unwrapMasterWithDeviceKEK,
+    handleNoAccessTokenLogin,
+    handleLogout,
 };

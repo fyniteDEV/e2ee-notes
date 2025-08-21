@@ -79,3 +79,26 @@ export const getWrappedMasterKey = async (): Promise<WrappedMasterKey> => {
         transaction.onerror = () => reject(transaction.error);
     });
 };
+
+export const clearKeys = (): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const db: IDBDatabase = await openDB();
+            const transaction = db.transaction("encryptionData", "readwrite");
+            const store = transaction.objectStore("encryptionData");
+
+            store.delete("KEK_device");
+            store.delete("wrapped_master_dev");
+
+            transaction.oncomplete = () => {
+                console.log(
+                    "Device key and wrapped master key wiped from IndexedDB"
+                );
+                resolve();
+            };
+            transaction.onerror = () => reject(transaction.error);
+        } catch (err) {
+            reject(err);
+        }
+    });
+};
