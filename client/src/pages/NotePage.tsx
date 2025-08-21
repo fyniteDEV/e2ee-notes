@@ -22,11 +22,13 @@ import { useState, useEffect } from "react";
 import "../App.css";
 import { type Note } from "../types";
 import NoteEditor from "../components/NoteEditor";
-import { useAuth } from "../AuthProvider";
+import { useAuth } from "../context/AuthProvider";
 import { api } from "../lib/axios";
 import { useNavigate } from "react-router-dom";
 import { accessTokenIsExpired, handleTokenRenew } from "../lib/authTools";
 import AlertSnackbar from "../components/AlertSnackbar";
+import { useMasterKey } from "../context/MasterKeyProvider";
+import encryptionTools from "../lib/encryptionTools";
 
 const NotePage = () => {
     const [notes, setNotes] = useState<Note[]>([
@@ -58,6 +60,7 @@ const NotePage = () => {
 
     const navigate = useNavigate();
     const auth = useAuth();
+    const masterKeyProvider = useMasterKey();
 
     // load all notes
     useEffect(() => {
@@ -65,8 +68,12 @@ const NotePage = () => {
             if (!auth.accessToken) {
                 try {
                     await handleTokenRenew(auth);
+                    const masterKey =
+                        await encryptionTools.unwrapMasterWithDeviceKEK();
+                    masterKeyProvider.provideKey(masterKey);
                 } catch (err) {
-                    console.error("Unable to refresh access token:", err);
+                    console.error("An error occured", err);
+                    masterKeyProvider.clearKey();
                     navigate("/login");
                     return;
                 }
@@ -317,6 +324,8 @@ const NotePage = () => {
         try {
             await api.protected.post("/auth/logout", {}, auth.accessToken!);
             auth.setAccessToken(null);
+            masterKeyProvider.clearKey();
+            // TODO: wipe wrapped_master_dev and KEK_device
             navigate("/");
         } catch (err) {
             console.error(err);

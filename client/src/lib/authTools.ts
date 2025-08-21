@@ -1,5 +1,5 @@
 import { api } from "./axios";
-import { type AuthContextType } from "../AuthProvider";
+import { type AuthContextType } from "../context/AuthProvider";
 
 export const accessTokenIsExpired = (accessToken: string) => {
     const payloadEncoded = accessToken.split(".")[1];

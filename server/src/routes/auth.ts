@@ -99,7 +99,7 @@ authRouter.post("/register", async (req, res) => {
         if (!newUser) {
             return res
                 .status(500)
-                .json({ success: false, message: "Internal server error" });
+                .json({ success: false, message: "Internal Server Error" });
         }
         res.json({
             success: true,
@@ -162,7 +162,22 @@ authRouter.post("/login", async (req, res) => {
         httpOnly: true,
         path: "/auth",
         maxAge: 5 * 24 * 60 * 60,
-    }).json({ success: true, message: "Login successful", accessToken });
+    }).json({
+        success: true,
+        message: "Login successful",
+        accessToken,
+        encryption: {
+            wrappedMasterKey: foundUser.master_wrapped_pass,
+            kdf: {
+                name: foundUser.kdf_name,
+                hash: foundUser.kdf_hash,
+                iterations: foundUser.kdf_iterations,
+            },
+            kekSalt: foundUser.kek_salt,
+            wrapAlgorithm: foundUser.wrap_algorithm,
+            wrapIV: foundUser.wrap_iv,
+        },
+    });
 });
 
 authRouter.get("/renew", async (req, res) => {

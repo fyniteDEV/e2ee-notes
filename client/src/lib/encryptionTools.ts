@@ -1,3 +1,4 @@
+import type { EncryptionDataBase64 } from "../types";
 import {
     getDeviceKey,
     storeDeviceKey,
@@ -5,14 +6,7 @@ import {
     storeWrappedMasterKey,
 } from "./indexedDbHelpers";
 
-// Device Key Encryption Key: used to wrap the master key with on the client side
-const generateDeviceKEK = (): Promise<CryptoKey> => {
-    return crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 },
-        /* extractable: */ false,
-        ["wrapKey", "unwrapKey"]
-    );
-};
+// ## ON REGISTER ##
 
 // Used to unlock note keys; never stored outside the memory as is, without encryption
 const generateMasterKey = (): Promise<CryptoKey> => {
@@ -21,20 +15,6 @@ const generateMasterKey = (): Promise<CryptoKey> => {
         /* extractable: */ true,
         ["encrypt", "decrypt"]
     );
-};
-
-// To store the master key on the client side we wrap the master key with the
-// device key
-const wrapMasterWithDeviceKEK = async (
-    K_master: CryptoKey,
-    KEK_device: CryptoKey
-) => {
-    const iv = crypto.getRandomValues(new Uint8Array(12)); // initialization vector/nonce
-    const wrapped = await crypto.subtle.wrapKey("raw", K_master, KEK_device, {
-        name: "AES-GCM",
-        iv,
-    });
-    await storeWrappedMasterKey(wrapped, iv);
 };
 
 // Password Key Encryption Key: used to wrap the master key for storage on the server side
@@ -107,16 +87,7 @@ const wrapMasterWithPasswordKEK = async (
     };
 };
 
-// TODO: only generate master key with password KEK wrapping and
-// send that to the server with the user credentials on registration.
-// On login the wrapped master key is fetched, unwrapped, new device key is
-// generated and with that the master key is wrapped and stored.
 export const initOnRegister = async (password: string) => {
-    // const KEK_device = await generateDeviceKEK();
-
-    // await storeDeviceKey(KEK_device);
-    // await wrapMasterWithDeviceKEK(K_master, KEK_device);
-
     const K_master = await generateMasterKey();
     console.log(K_master);
     const passKEKObject = await generatePasswordKEK(password);
@@ -125,8 +96,95 @@ export const initOnRegister = async (password: string) => {
     return await wrapMasterWithPasswordKEK(passKEKObject, K_master);
 };
 
-// Unwrap for logging in
-const unwrapMasterWithDeviceKEK = async (): Promise<CryptoKey> => {
+// ## ON LOGIN ##
+
+const unwrapMasterWithPassword = async (
+    encryption: EncryptionDataBase64,
+    password: string
+) => {
+    // convert base64 to ArrayBuffer
+    const wrappedKey = Uint8Array.from(atob(encryption.wrappedMasterKey), (c) =>
+        c.charCodeAt(0)
+    );
+    const salt = Uint8Array.from(atob(encryption.kekSalt), (c) =>
+        c.charCodeAt(0)
+    );
+    const iv = Uint8Array.from(atob(encryption.wrapIV), (c) => c.charCodeAt(0));
+
+    // import raw password as base key
+    const baseKey = await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(password),
+        { name: encryption.kdf.name },
+        false,
+        ["deriveKey"]
+    );
+
+    // derive KEK_password
+    const kekPassword = await crypto.subtle.deriveKey(
+        {
+            name: encryption.kdf.name,
+            salt,
+            iterations: encryption.kdf.iterations,
+            hash: encryption.kdf.hash,
+        },
+        baseKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["unwrapKey"]
+    );
+
+    // unwrap wrapped_master_key
+    const K_master = await crypto.subtle.unwrapKey(
+        "raw",
+        wrappedKey.buffer,
+        kekPassword,
+        { name: encryption.wrapAlgorithm, iv },
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["wrapKey", "unwrapKey", "encrypt", "decrypt"]
+    );
+
+    return K_master;
+};
+
+// Device Key Encryption Key: used to wrap the master key with on the client side
+const generateDeviceKEK = (): Promise<CryptoKey> => {
+    return crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        /* extractable: */ false,
+        ["wrapKey", "unwrapKey"]
+    );
+};
+
+// To store the master key on the client side we wrap the master key with the
+// device key
+const wrapAndStoreMasterWithDeviceKEK = async (
+    K_master: CryptoKey,
+    KEK_device: CryptoKey
+) => {
+    const iv = crypto.getRandomValues(new Uint8Array(12)); // initialization vector/nonce
+    try {
+        const wrapped = await crypto.subtle.wrapKey(
+            "raw",
+            K_master,
+            KEK_device,
+            {
+                name: "AES-GCM",
+                iv,
+            }
+        );
+        console.log("wrapped", wrapped);
+        await storeWrappedMasterKey(wrapped, iv);
+        console.log("wrapped and stored");
+        // FIXME: it stores an empty object?
+    } catch (error) {
+        console.log("error", error);
+    }
+};
+
+// Unwrap for logging in without access token (refresh token used)
+export const unwrapMasterWithDeviceKEK = async (): Promise<CryptoKey> => {
     const KEK_device = await getDeviceKey();
     if (!KEK_device) {
         throw new Error("Device key missing");
@@ -144,4 +202,30 @@ const unwrapMasterWithDeviceKEK = async (): Promise<CryptoKey> => {
     );
 
     return K_master;
+};
+
+export const handleLogin = async (
+    encryption: EncryptionDataBase64,
+    password: string
+) => {
+    const K_master = await unwrapMasterWithPassword(encryption, password);
+    console.log(K_master);
+
+    const KEK_device = await generateDeviceKEK();
+    // console.log("device key generated", KEK_device);
+    await storeDeviceKey(KEK_device);
+    // console.log("device key stored");
+    await wrapAndStoreMasterWithDeviceKEK(K_master, KEK_device);
+    // console.log("master key wrapped and stored");
+
+    // console.log("K_MASTER", K_master);
+    return K_master;
+};
+
+// TODO: wipe keys on device on logout
+
+export default {
+    initOnRegister,
+    handleLogin,
+    unwrapMasterWithDeviceKEK,
 };

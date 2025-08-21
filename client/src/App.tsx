@@ -5,7 +5,8 @@ import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import NotePage from "./pages/NotePage";
-import { AuthProvider } from "./AuthProvider";
+import { AuthProvider } from "./context/AuthProvider";
+import { MasterKeyProvider } from "./context/MasterKeyProvider";
 
 const theme = createTheme({
     palette: {
@@ -59,13 +60,15 @@ function App() {
     return (
         <ThemeProvider theme={theme}>
             <AuthProvider>
-                <CssBaseline />
-                <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/note" element={<NotePage />} />
-                </Routes>
+                <MasterKeyProvider>
+                    <CssBaseline />
+                    <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/register" element={<RegisterPage />} />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/note" element={<NotePage />} />
+                    </Routes>
+                </MasterKeyProvider>
             </AuthProvider>
         </ThemeProvider>
     );

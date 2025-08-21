@@ -13,14 +13,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { AxiosError, isAxiosError } from "axios";
 import { api } from "../lib/axios";
-import { useAuth } from "../AuthProvider";
-import { type ApiResponse } from "../types";
+import { useAuth } from "../context/AuthProvider";
+import { type ApiResponse, type LoginSrvResponse } from "../types";
+import encryptionTools from "../lib/encryptionTools";
+import { useMasterKey } from "../context/MasterKeyProvider";
 
 const LoginPage = () => {
     const emailRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
 
     const auth = useAuth();
+    const masterKeyProvider = useMasterKey();
 
     const navigate = useNavigate();
     const [success, setSuccess] = useState(false);
@@ -41,11 +44,21 @@ const LoginPage = () => {
                 email,
                 password,
             });
-            if (res.data.success) {
-                auth.setAccessToken(res.data.accessToken);
+
+            const srvRes: LoginSrvResponse = res.data;
+            if (srvRes.success) {
+                console.log(srvRes);
+                auth.setAccessToken(srvRes.accessToken!);
+
+                const masterKey = await encryptionTools.handleLogin(
+                    srvRes.encryption!,
+                    password
+                );
+                masterKeyProvider.provideKey(masterKey);
+
                 handleSuccess();
             } else {
-                handleError(res.data.message);
+                handleError(srvRes.message);
             }
         } catch (err) {
             if (isAxiosError(err)) {
@@ -71,7 +84,7 @@ const LoginPage = () => {
 
     useEffect(() => {
         if (success && auth.accessToken !== null) {
-            console.log("AT", auth.accessToken);
+            // console.log("AT", auth.accessToken);
             navigate("/note");
         }
     }, [success]);
