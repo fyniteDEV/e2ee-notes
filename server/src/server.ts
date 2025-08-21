@@ -15,18 +15,22 @@ const port = process.env.PORT || 3500;
 // ERROR HANDLING
 process.on("uncaughtException", (err) => {
     console.error("Uncaught Exception:", err);
+    closeServer();
 });
 process.on("unhandledRejection", (reason, promise) => {
     console.error("Unhandled Rejection:", reason);
+    closeServer();
 });
 process.on("SIGINT", () => {
     console.log("Received SIGINT, shutting down.");
-    process.exit(0);
+    closeServer();
 });
-
 process.on("SIGTERM", () => {
     console.log("Received SIGTERM, shutting down.");
-    process.exit(0);
+    closeServer();
+});
+process.on("SIGTSTP", () => {
+    console.log("Received SIGTSTP, pausing. Use 'fg' to resume.");
 });
 
 // Middlewares
@@ -48,7 +52,13 @@ app.get("/", (_req, res) => {
     res.json({ message: "Hello world!" });
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     db.testConnection();
     console.log("Server listening on port", port);
 });
+
+const closeServer = () => {
+    server.close(() => {
+        console.log("Server closes on port", port);
+    });
+};
