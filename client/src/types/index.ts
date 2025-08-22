@@ -5,6 +5,15 @@ export interface Note {
     created_at: string;
 }
 
+export interface EncryptedNote {
+    id: number;
+    title: string;
+    title_iv: string;
+    content: string;
+    content_iv: string;
+    created_at: string;
+}
+
 export type ApiResponse = {
     success: boolean;
     message: string;

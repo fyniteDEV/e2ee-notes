@@ -20,7 +20,9 @@ CREATE TABLE notes (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
+    title_iv TEXT NOT NULL,
     content TEXT,
+    content_iv TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

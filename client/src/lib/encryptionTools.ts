@@ -1,4 +1,4 @@
-import type { EncryptionDataBase64 } from "../types";
+import type { EncryptedNote, EncryptionDataBase64, Note } from "../types";
 import {
     getDeviceKey,
     storeDeviceKey,
@@ -227,6 +227,120 @@ export const handleNoAccessTokenLogin = async (): Promise<CryptoKey> => {
 
 export const handleLogout = async () => {
     await clearKeys();
+};
+
+// ## NOTE KEYS ##
+
+const generateNoteKey = async (): Promise<CryptoKey> => {
+    return await crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+    );
+};
+
+const wrapNoteKey = async (noteKey: CryptoKey, masterKey: CryptoKey) => {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const wrapped = await crypto.subtle.wrapKey("raw", noteKey, masterKey, {
+        name: "AES-GCM",
+        iv,
+    });
+
+    return {
+        wrappedNoteKeyBase64: btoa(
+            String.fromCharCode(...new Uint8Array(wrapped))
+        ),
+        ivBase64: btoa(String.fromCharCode(...iv)),
+    };
+};
+
+const unwrapNoteKey = async (
+    wrappedBase64: string,
+    ivBase64: string,
+    masterKey: CryptoKey
+): Promise<CryptoKey> => {
+    const wrapped = Uint8Array.from(atob(wrappedBase64), (c) =>
+        c.charCodeAt(0)
+    );
+    const iv = Uint8Array.from(atob(ivBase64), (c) => c.charCodeAt(0));
+
+    const noteKey = await crypto.subtle.unwrapKey(
+        "raw",
+        wrapped.buffer,
+        masterKey,
+        { name: "AES-GCM", iv },
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+    );
+
+    return noteKey;
+};
+
+const encryptNote = async (
+    note: Note,
+    noteKey: CryptoKey
+): Promise<EncryptedNote> => {
+    const titleIV = crypto.getRandomValues(new Uint8Array(12));
+    const title = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: titleIV },
+        noteKey,
+        new TextEncoder().encode(note.title)
+    );
+
+    const contentIV = crypto.getRandomValues(new Uint8Array(12));
+    const content = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: titleIV },
+        noteKey,
+        new TextEncoder().encode(note.content)
+    );
+
+    const encrypted: EncryptedNote = {
+        ...note,
+        title_iv: btoa(String.fromCharCode(...new Uint8Array(titleIV))),
+        title: btoa(String.fromCharCode(...new Uint8Array(title))),
+        content_iv: btoa(String.fromCharCode(...new Uint8Array(contentIV))),
+        content: btoa(String.fromCharCode(...new Uint8Array(content))),
+    };
+    return encrypted;
+};
+
+const decryptNote = async (
+    noteKey: CryptoKey,
+    encryptedNote: EncryptedNote
+): Promise<Note> => {
+    const titleIV = Uint8Array.from(atob(encryptedNote.title_iv), (c) =>
+        c.charCodeAt(0)
+    );
+    const encryptedTitle = Uint8Array.from(atob(encryptedNote.title), (c) =>
+        c.charCodeAt(0)
+    );
+    const titlePlaintext = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: titleIV },
+        noteKey,
+        encryptedTitle
+    );
+
+    const contentIV = Uint8Array.from(atob(encryptedNote.content_iv), (c) =>
+        c.charCodeAt(0)
+    );
+    const encryptedContent = Uint8Array.from(atob(encryptedNote.content), (c) =>
+        c.charCodeAt(0)
+    );
+    const contentPlaintext = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: contentIV },
+        noteKey,
+        encryptedContent
+    );
+
+    const note: Note = {
+        id: encryptedNote.id,
+        title: new TextDecoder().decode(titlePlaintext),
+        content: new TextDecoder().decode(contentPlaintext),
+        created_at: encryptedNote.created_at,
+    };
+    return note;
 };
 
 export default {
