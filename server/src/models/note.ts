@@ -22,14 +22,28 @@ export const getNotesByUserId = async (id: string) => {
 export const createNote = async (
     userId: string,
     title: string,
-    content: string
+    titleIV: string,
+    content: string,
+    contentIV: string,
+    wrappedNoteKey: string,
+    noteKeyIV: string
 ) => {
     const query = `
-        INSERT INTO notes (user_id, title, content)
-        VALUES ($1, $2, $3)
-        RETURNING id, title, content, created_at
+        INSERT INTO notes (user_id, title, title_iv, content,
+            content_iv, wrapped_note_key, note_key_iv)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, title, title_iv, content, content_iv,
+            wrapped_note_key, note_key_iv created_at;
     `;
-    const values = [userId, title, content];
+    const values = [
+        userId,
+        title,
+        titleIV,
+        content,
+        contentIV,
+        wrappedNoteKey,
+        noteKeyIV,
+    ];
 
     try {
         const res = await pool.query(query, values);

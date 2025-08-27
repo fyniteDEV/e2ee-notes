@@ -2,10 +2,25 @@ import Router, { Response } from "express";
 import dotenv from "dotenv";
 import { authenticateAccessToken } from "../middleware/authMiddleware";
 import * as noteModel from "../models/note";
-import { ProtectedRequest } from "../types";
+import { NotePayload, ProtectedRequest } from "../types";
 
 const notesRouter = Router();
 dotenv.config();
+
+function isNotePayload(payload: any): payload is NotePayload {
+    return (
+        typeof payload === "object" &&
+        payload !== null &&
+        typeof payload.title === "string" &&
+        typeof payload.titleIV === "string" &&
+        typeof payload.content === "string" &&
+        typeof payload.contentIV === "string" &&
+        typeof payload.noteKey === "object" &&
+        payload.noteKey !== null &&
+        typeof payload.noteKey.wrappedNoteKey === "string" &&
+        typeof payload.noteKey.iv === "string"
+    );
+}
 
 notesRouter.get(
     "/",
@@ -59,21 +74,35 @@ notesRouter.post(
     "/",
     authenticateAccessToken,
     async (req: ProtectedRequest, res: Response) => {
-        try {
-            const dbRes = await noteModel.createNote(
-                req.userData!.id,
-                "New note",
-                ""
-            );
-            res.json({
-                success: true,
-                message: "New note successfully added",
-                notes: [dbRes],
-            });
-        } catch (err) {
-            res.status(500).json({
+        const payload = req.body;
+        console.log(payload);
+        if (isNotePayload(payload)) {
+            try {
+                const dbRes = await noteModel.createNote(
+                    req.userData!.id,
+                    payload.title,
+                    payload.titleIV,
+                    payload.content,
+                    payload.contentIV,
+                    payload.noteKey.wrappedNoteKey,
+                    payload.noteKey.iv
+                );
+                console.log(dbRes);
+                res.json({
+                    success: true,
+                    message: "New note successfully added",
+                    notes: [dbRes],
+                });
+            } catch (err) {
+                res.status(500).json({
+                    success: false,
+                    message: "Internal Server Error",
+                });
+            }
+        } else {
+            res.status(400).json({
                 success: false,
-                message: "Internal Server Error",
+                message: "Invalid request: Missing or invalid parameters",
             });
         }
     }

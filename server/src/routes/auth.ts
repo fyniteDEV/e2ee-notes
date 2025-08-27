@@ -30,8 +30,6 @@ function saveRefreshTokenToDB(refreshToken: string, userId: string) {
 }
 
 function isRegisterPayload(payload: unknown): payload is RegisterPayload {
-    console.log(payload);
-
     if (typeof payload !== "object" || payload === null) {
         return false;
     }
@@ -161,7 +159,7 @@ authRouter.post("/login", async (req, res) => {
     res.cookie("jwt", refreshToken, {
         httpOnly: true,
         path: "/auth",
-        maxAge: 5 * 24 * 60 * 60,
+        maxAge: 5 * 24 * 60 * 60 * 1000,
     }).json({
         success: true,
         message: "Login successful",

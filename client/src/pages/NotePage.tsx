@@ -98,7 +98,7 @@ const NotePage = () => {
     // set initial selected note to the last added one
     useEffect(() => {
         if (selectedNoteId === -1 && notes.length >= 1) {
-            setSelectedNoteId(notes[notes.length - 1].id);
+            setSelectedNoteId(notes[notes.length - 1].id!);
         }
     }, [notes]);
 
@@ -188,17 +188,28 @@ const NotePage = () => {
             }
         }
 
+        const newNote: Note = {
+            id: undefined,
+            title: "New note",
+            content: "",
+            created_at: undefined,
+        };
+        const payload = await encryptionTools.handleNewNote(
+            newNote,
+            masterKeyProvider.masterKey!
+        );
+
         try {
             const res = await api.protected.post(
                 "/api/notes",
-                {},
+                payload,
                 auth.accessToken!
             );
             console.log("res", res.data);
 
             const newNote: Note = res.data.notes[0];
             setNotes((prevNotes) => [...prevNotes, newNote]);
-            setSelectedNoteId(newNote.id);
+            setSelectedNoteId(newNote.id!);
         } catch (err) {
             console.error(err);
             return handleNewAlert(
@@ -293,7 +304,7 @@ const NotePage = () => {
             if (updatedNotes.length > 0) {
                 const newSelectedNote =
                     updatedNotes[index - 1] || updatedNotes[index];
-                setSelectedNoteId(newSelectedNote.id);
+                setSelectedNoteId(newSelectedNote.id!);
             } else {
                 setSelectedNoteId(-1);
             }
@@ -372,7 +383,7 @@ const NotePage = () => {
                                 }}
                                 key={note.id}
                                 disablePadding
-                                onClick={() => handleSelectNote(note.id)}
+                                onClick={() => handleSelectNote(note.id!)}
                             >
                                 <ListItemButton
                                     sx={{

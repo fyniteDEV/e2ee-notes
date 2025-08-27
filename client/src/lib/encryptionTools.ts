@@ -1,4 +1,9 @@
-import type { EncryptedNote, EncryptionDataBase64, Note } from "../types";
+import type {
+    EncryptedNote,
+    EncryptionDataBase64,
+    Note,
+    NotePayload,
+} from "../types";
 import {
     getDeviceKey,
     storeDeviceKey,
@@ -14,7 +19,7 @@ const generateMasterKey = (): Promise<CryptoKey> => {
     return crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
         /* extractable: */ true,
-        ["encrypt", "decrypt"]
+        ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
     );
 };
 
@@ -178,7 +183,6 @@ const wrapAndStoreMasterWithDeviceKEK = async (
         console.log("wrapped", wrapped);
         await storeWrappedMasterKey(wrapped, iv);
         console.log("wrapped and stored");
-        // FIXME: it stores an empty object?
     } catch (error) {
         console.log("error", error);
     }
@@ -248,10 +252,8 @@ const wrapNoteKey = async (noteKey: CryptoKey, masterKey: CryptoKey) => {
     });
 
     return {
-        wrappedNoteKeyBase64: btoa(
-            String.fromCharCode(...new Uint8Array(wrapped))
-        ),
-        ivBase64: btoa(String.fromCharCode(...iv)),
+        wrappedNoteKey: btoa(String.fromCharCode(...new Uint8Array(wrapped))),
+        iv: btoa(String.fromCharCode(...iv)),
     };
 };
 
@@ -298,9 +300,9 @@ const encryptNote = async (
 
     const encrypted: EncryptedNote = {
         ...note,
-        title_iv: btoa(String.fromCharCode(...new Uint8Array(titleIV))),
+        titleIV: btoa(String.fromCharCode(...new Uint8Array(titleIV))),
         title: btoa(String.fromCharCode(...new Uint8Array(title))),
-        content_iv: btoa(String.fromCharCode(...new Uint8Array(contentIV))),
+        contentIV: btoa(String.fromCharCode(...new Uint8Array(contentIV))),
         content: btoa(String.fromCharCode(...new Uint8Array(content))),
     };
     return encrypted;
@@ -310,7 +312,7 @@ const decryptNote = async (
     noteKey: CryptoKey,
     encryptedNote: EncryptedNote
 ): Promise<Note> => {
-    const titleIV = Uint8Array.from(atob(encryptedNote.title_iv), (c) =>
+    const titleIV = Uint8Array.from(atob(encryptedNote.titleIV), (c) =>
         c.charCodeAt(0)
     );
     const encryptedTitle = Uint8Array.from(atob(encryptedNote.title), (c) =>
@@ -322,7 +324,7 @@ const decryptNote = async (
         encryptedTitle
     );
 
-    const contentIV = Uint8Array.from(atob(encryptedNote.content_iv), (c) =>
+    const contentIV = Uint8Array.from(atob(encryptedNote.contentIV), (c) =>
         c.charCodeAt(0)
     );
     const encryptedContent = Uint8Array.from(atob(encryptedNote.content), (c) =>
@@ -343,9 +345,28 @@ const decryptNote = async (
     return note;
 };
 
+export const handleNewNote = async (
+    note: Note,
+    masterKey: CryptoKey
+): Promise<NotePayload> => {
+    const noteKey = await generateNoteKey();
+    const encryptedNote = await encryptNote(note, noteKey);
+    const wrappedNoteKey = await wrapNoteKey(noteKey, masterKey);
+
+    const payload: NotePayload = {
+        title: encryptedNote.title,
+        titleIV: encryptedNote.titleIV,
+        content: encryptedNote.content,
+        contentIV: encryptedNote.contentIV,
+        noteKey: wrappedNoteKey,
+    };
+    return payload;
+};
+
 export default {
     handleRegister,
     handleLogin,
     handleNoAccessTokenLogin,
     handleLogout,
+    handleNewNote,
 };

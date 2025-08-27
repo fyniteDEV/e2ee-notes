@@ -23,6 +23,8 @@ CREATE TABLE notes (
     title_iv TEXT NOT NULL,
     content TEXT,
     content_iv TEXT NOT NULL,
+    wrapped_note_key TEXT NOT NULL,
+    note_key_iv TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

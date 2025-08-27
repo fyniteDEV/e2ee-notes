@@ -1,17 +1,13 @@
 export interface Note {
-    id: number;
+    id: number | undefined;
     title: string;
     content: string;
-    created_at: string;
+    created_at: string | undefined;
 }
 
-export interface EncryptedNote {
-    id: number;
-    title: string;
-    title_iv: string;
-    content: string;
-    content_iv: string;
-    created_at: string;
+export interface EncryptedNote extends Note {
+    titleIV: string;
+    contentIV: string;
 }
 
 export type ApiResponse = {
@@ -43,4 +39,15 @@ export interface EncryptionDataBase64 {
     };
     wrapAlgorithm: "AES_GCM";
     wrapIV: string;
+}
+
+export interface NotePayload {
+    title: string;
+    titleIV: string;
+    content: string;
+    contentIV: string;
+    noteKey: {
+        wrappedNoteKey: string;
+        iv: string;
+    };
 }

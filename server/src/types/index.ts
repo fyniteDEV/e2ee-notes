@@ -38,3 +38,14 @@ export interface RegisterPayload {
     wrapAlgorithm: "AES_GCM";
     wrapIV: string;
 }
+
+export interface NotePayload {
+    title: string;
+    titleIV: string;
+    content: string;
+    contentIV: string;
+    noteKey: {
+        wrappedNoteKey: string;
+        iv: string;
+    };
+}
