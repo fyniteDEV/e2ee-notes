@@ -8,6 +8,8 @@ export interface Note {
 export interface EncryptedNote extends Note {
     titleIV: string;
     contentIV: string;
+    wrappedNoteKey: string;
+    noteKeyIV: string;
 }
 
 export type ApiResponse = {
@@ -48,6 +50,6 @@ export interface NotePayload {
     contentIV: string;
     noteKey: {
         wrappedNoteKey: string;
-        iv: string;
+        noteKeyIV: string;
     };
 }

@@ -46,6 +46,6 @@ export interface NotePayload {
     contentIV: string;
     noteKey: {
         wrappedNoteKey: string;
-        iv: string;
+        noteKeyIV: string;
     };
 }

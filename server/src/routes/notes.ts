@@ -18,7 +18,7 @@ function isNotePayload(payload: any): payload is NotePayload {
         typeof payload.noteKey === "object" &&
         payload.noteKey !== null &&
         typeof payload.noteKey.wrappedNoteKey === "string" &&
-        typeof payload.noteKey.iv === "string"
+        typeof payload.noteKey.noteKeyIV === "string"
     );
 }
 
@@ -85,9 +85,8 @@ notesRouter.post(
                     payload.content,
                     payload.contentIV,
                     payload.noteKey.wrappedNoteKey,
-                    payload.noteKey.iv
+                    payload.noteKey.noteKeyIV
                 );
-                console.log(dbRes);
                 res.json({
                     success: true,
                     message: "New note successfully added",

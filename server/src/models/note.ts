@@ -33,7 +33,7 @@ export const createNote = async (
             content_iv, wrapped_note_key, note_key_iv)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, title, title_iv, content, content_iv,
-            wrapped_note_key, note_key_iv created_at;
+            wrapped_note_key, note_key_iv, created_at;
     `;
     const values = [
         userId,

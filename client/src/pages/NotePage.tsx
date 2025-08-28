@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import "../App.css";
-import { type Note } from "../types";
+import { type EncryptedNote, type Note } from "../types";
 import NoteEditor from "../components/NoteEditor";
 import { useAuth } from "../context/AuthProvider";
 import { api } from "../lib/axios";
@@ -205,11 +205,24 @@ const NotePage = () => {
                 payload,
                 auth.accessToken!
             );
-            console.log("res", res.data);
+            const resNote = res.data.notes[0];
+            const encryptedNote: EncryptedNote = {
+                id: resNote.id,
+                title: resNote.title,
+                titleIV: resNote.title_iv,
+                content: resNote.content,
+                contentIV: resNote.content_iv,
+                created_at: resNote.created_at,
+                wrappedNoteKey: resNote.wrapped_note_key,
+                noteKeyIV: resNote.note_key_iv,
+            };
+            const decrypted = await encryptionTools.handleNoteDecryption(
+                encryptedNote,
+                masterKeyProvider.masterKey!
+            );
 
-            const newNote: Note = res.data.notes[0];
-            setNotes((prevNotes) => [...prevNotes, newNote]);
-            setSelectedNoteId(newNote.id!);
+            setNotes((prevNotes) => [...prevNotes, decrypted]);
+            setSelectedNoteId(decrypted.id!);
         } catch (err) {
             console.error(err);
             return handleNewAlert(
