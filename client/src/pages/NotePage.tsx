@@ -18,9 +18,14 @@ import {
     Toolbar,
     Drawer,
 } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "../App.css";
-import { type EncryptedNote, type Note } from "../types";
+import {
+    type EncryptedNote,
+    type Note,
+    type NotePayload,
+    type NotePreview,
+} from "../types";
 import NoteEditor from "../components/NoteEditor";
 import { useAuth } from "../context/AuthProvider";
 import { api } from "../lib/axios";
@@ -31,16 +36,23 @@ import { useMasterKey } from "../context/MasterKeyProvider";
 import encryptionTools from "../lib/encryptionTools";
 
 const NotePage = () => {
-    const [notes, setNotes] = useState<Note[]>([
+    const [notes, setNotes] = useState<EncryptedNote[]>([
         {
             id: -1,
             title: "",
+            titleIV: "",
             content: "",
-            created_at: new Date().toISOString(),
+            contentIV: "",
+            createdAt: new Date().toISOString(),
+            wrappedNoteKey: "",
+            noteKeyIV: "",
         },
     ]);
+    const prevNotesLength = useRef(notes.length);
+    const [editedNote, setEditedNote] = useState<Note>();
+    const [previews, setPreviews] = useState<NotePreview[]>([]);
     const [selectedNoteId, setSelectedNoteId] = useState(-1);
-    const selectedNote = notes.find((note) => note.id === selectedNoteId);
+    // const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -62,7 +74,7 @@ const NotePage = () => {
     const auth = useAuth();
     const masterKeyProvider = useMasterKey();
 
-    // load all notes
+    // handle access token initially
     useEffect(() => {
         const handleNoAccessToken = async () => {
             if (!auth.accessToken) {
@@ -80,27 +92,42 @@ const NotePage = () => {
             }
         };
 
-        const loadAllNotes = async () => {
-            setNotes(await fetchAllNotes());
-        };
-
         handleNoAccessToken();
-        loadAllNotes();
     }, []);
 
+    // fetch and load decrypted notes
     useEffect(() => {
         const loadAllNotes = async () => {
-            setNotes(await fetchAllNotes());
+            const encryptedNotes = await fetchAllNotes();
+            const p = await encryptionTools.allNotesToPreviewsArray(
+                encryptedNotes,
+                masterKeyProvider.masterKey!
+            );
+            setPreviews(p);
+            setNotes(encryptedNotes);
+            prevNotesLength.current = encryptedNotes.length;
         };
         loadAllNotes();
-    }, [auth.accessToken]);
+    }, [masterKeyProvider.masterKey]);
 
+    // FIXME: doesn't work at all
     // set initial selected note to the last added one
     useEffect(() => {
         if (selectedNoteId === -1 && notes.length >= 1) {
             setSelectedNoteId(notes[notes.length - 1].id!);
+            console.log("last added one", notes[notes.length - 1].id!);
         }
-    }, [notes]);
+    }, [previews]);
+
+    // on adding a note set the selected note to the newest one
+    useEffect(() => {
+        if (notes.length > prevNotesLength.current) {
+            const newest = notes[notes.length - 1];
+            console.log("newests", newest);
+            handleSelectNote(newest.id!);
+            prevNotesLength.current = notes.length;
+        }
+    }, [notes.length]);
 
     const fetchAllNotes = async () => {
         if (accessTokenIsExpired(auth.accessToken!)) {
@@ -118,7 +145,7 @@ const NotePage = () => {
                 auth.accessToken!
             );
             if (res.data.success) {
-                console.log(res.data.notes);
+                console.log("notes fetched", res.data.notes);
                 return res.data.notes;
             } else {
                 handleNewAlert(
@@ -135,15 +162,26 @@ const NotePage = () => {
         }
     };
 
-    const handleSelectNote = (id: number) => {
+    const handleSelectNote = async (id: number) => {
         setDrawerOpen(false);
         handleSaveNote();
 
-        if (selectedNote?.title === "") {
+        console.log("edited note", editedNote);
+        if (editedNote?.title === "") {
             return setInvalidTitle(true);
         }
 
+        console.log(
+            "found note",
+            notes.find((n) => n.id === id)
+        );
+
         if (notes.find((n) => n.id === id)) {
+            const decrypted = await encryptionTools.handleNoteDecryption(
+                notes.find((n) => n.id === id)!,
+                masterKeyProvider.masterKey!
+            );
+            setEditedNote(decrypted);
             setSelectedNoteId(id);
         } else {
             setSelectedNoteId(-1);
@@ -155,30 +193,26 @@ const NotePage = () => {
             setInvalidTitle(false);
         }
 
-        setNotes((prevNotes) =>
-            prevNotes.map((n) =>
-                n.id === selectedNoteId ? { ...n, title } : n
-            )
+        setEditedNote((prev) => (prev ? { ...prev, title } : undefined));
+        setPreviews((prev) =>
+            prev.map((p) => (p.id === selectedNoteId ? { ...p, title } : p))
         );
     };
 
     const handleContentEdit = (content: string) => {
-        setNotes((prevNotes) =>
-            prevNotes.map((n) =>
-                n.id === selectedNoteId ? { ...n, content } : n
-            )
-        );
+        setEditedNote((prev) => (prev ? { ...prev, content } : undefined));
     };
 
     const handleAddNote = async () => {
-        if (selectedNote?.title === "") {
+        if (editedNote?.title === "") {
             setDrawerOpen(false);
             return setInvalidTitle(true);
         }
 
-        if (accessTokenIsExpired(auth.accessToken!)) {
+        let accessToken = auth.accessToken!;
+        if (accessTokenIsExpired(accessToken)) {
             try {
-                await handleTokenRenew(auth);
+                accessToken = await handleTokenRenew(auth);
             } catch (err) {
                 console.error("Unable to refresh access token:", err);
                 return handleNewAlert(
@@ -192,7 +226,7 @@ const NotePage = () => {
             id: undefined,
             title: "New note",
             content: "",
-            created_at: undefined,
+            createdAt: undefined,
         };
         const payload = await encryptionTools.handleNewNote(
             newNote,
@@ -203,7 +237,7 @@ const NotePage = () => {
             const res = await api.protected.post(
                 "/api/notes",
                 payload,
-                auth.accessToken!
+                accessToken
             );
             const resNote = res.data.notes[0];
             const encryptedNote: EncryptedNote = {
@@ -212,17 +246,18 @@ const NotePage = () => {
                 titleIV: resNote.title_iv,
                 content: resNote.content,
                 contentIV: resNote.content_iv,
-                created_at: resNote.created_at,
+                createdAt: resNote.created_at,
                 wrappedNoteKey: resNote.wrapped_note_key,
                 noteKeyIV: resNote.note_key_iv,
             };
-            const decrypted = await encryptionTools.handleNoteDecryption(
+            setNotes((prevNotes) => [...prevNotes, encryptedNote]);
+
+            const preview = await encryptionTools.decryptNoteToPreview(
                 encryptedNote,
                 masterKeyProvider.masterKey!
             );
-
-            setNotes((prevNotes) => [...prevNotes, decrypted]);
-            setSelectedNoteId(decrypted.id!);
+            setPreviews((prevPreviews) => [...prevPreviews, preview]);
+            // handleSelectNote(preview.id);
         } catch (err) {
             console.error(err);
             return handleNewAlert(
@@ -235,14 +270,16 @@ const NotePage = () => {
     };
 
     const handleSaveNote = async () => {
-        console.log(selectedNoteId);
         if (selectedNoteId === -1) {
             return;
+        } else if (editedNote?.title === "") {
+            return setInvalidTitle(true);
         }
 
-        if (accessTokenIsExpired(auth.accessToken!)) {
+        let accessToken = auth.accessToken!;
+        if (accessTokenIsExpired(accessToken)) {
             try {
-                await handleTokenRenew(auth);
+                accessToken = await handleTokenRenew(auth);
             } catch (err) {
                 console.error("Unable to refresh access token:", err);
                 return handleNewAlert(
@@ -252,16 +289,32 @@ const NotePage = () => {
             }
         }
 
+        const preSaveEncrypted = notes.find((n) => n.id === selectedNoteId);
+        const encryptedNote = await encryptionTools.handleNoteEncryption(
+            editedNote!,
+            preSaveEncrypted!.wrappedNoteKey,
+            preSaveEncrypted!.noteKeyIV,
+            masterKeyProvider.masterKey!
+        );
+
+        setNotes(
+            notes.map((n) => (n.id === selectedNoteId ? encryptedNote : n))
+        );
+
+        const payload: NotePayload = {
+            id: encryptedNote.id!,
+            title: encryptedNote.title,
+            titleIV: encryptedNote.titleIV,
+            content: encryptedNote.content,
+            contentIV: encryptedNote.contentIV,
+            noteKey: {
+                wrappedNoteKey: encryptedNote.wrappedNoteKey,
+                noteKeyIV: encryptedNote.noteKeyIV,
+            },
+        };
+
         try {
-            await api.protected.put(
-                "/api/notes",
-                {
-                    title: selectedNote?.title,
-                    content: selectedNote?.content,
-                    noteId: selectedNote?.id,
-                },
-                auth.accessToken!
-            );
+            await api.protected.put("/api/notes", payload, accessToken);
             handleNewAlert("Note saved", "success");
         } catch (err) {
             console.error(err);
@@ -326,6 +379,7 @@ const NotePage = () => {
         });
     };
 
+    // FIXME: alerts should be placed in the bottom for better to not cover the editor
     const handleNewAlert = (message: string, severity: "success" | "error") => {
         setAlertMessage(message);
         setAlertSeverity(severity);
@@ -383,20 +437,18 @@ const NotePage = () => {
             {/* scrollable list */}
             <Box flexGrow={1} overflow="auto">
                 <List>
-                    {notes
+                    {previews!
                         .slice()
                         .reverse()
-                        .map((note) => (
+                        .map((p) => (
                             <ListItem
                                 sx={{
                                     bgcolor:
-                                        note.id === selectedNoteId
-                                            ? "#222"
-                                            : "",
+                                        p.id === selectedNoteId ? "#222" : "",
                                 }}
-                                key={note.id}
+                                key={p.id}
                                 disablePadding
-                                onClick={() => handleSelectNote(note.id!)}
+                                onClick={() => handleSelectNote(p.id!)}
                             >
                                 <ListItemButton
                                     sx={{
@@ -404,7 +456,7 @@ const NotePage = () => {
                                     }}
                                 >
                                     <ListItemText
-                                        primary={note.title}
+                                        primary={p.title}
                                         slotProps={{
                                             primary: {
                                                 noWrap: true,
@@ -443,7 +495,7 @@ const NotePage = () => {
                         </Box>
                         <Box p={2} flex={1}>
                             <NoteEditor
-                                note={selectedNote}
+                                note={editedNote}
                                 onTitleChange={handleTitleEdit}
                                 onContentChange={handleContentEdit}
                                 onDeleteButtonClick={() =>
@@ -482,7 +534,7 @@ const NotePage = () => {
                         </Drawer>
                         <Box p={2} flex={1} mt={8}>
                             <NoteEditor
-                                note={selectedNote}
+                                note={editedNote}
                                 onTitleChange={handleTitleEdit}
                                 onContentChange={handleContentEdit}
                                 onDeleteButtonClick={() =>

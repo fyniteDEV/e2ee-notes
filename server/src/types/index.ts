@@ -40,6 +40,7 @@ export interface RegisterPayload {
 }
 
 export interface NotePayload {
+    id: number | undefined;
     title: string;
     titleIV: string;
     content: string;
@@ -48,4 +49,18 @@ export interface NotePayload {
         wrappedNoteKey: string;
         noteKeyIV: string;
     };
+}
+
+export interface Note {
+    id: number | undefined;
+    title: string;
+    content: string;
+    createdAt: string | undefined;
+}
+
+export interface EncryptedNote extends Note {
+    titleIV: string;
+    contentIV: string;
+    wrappedNoteKey: string;
+    noteKeyIV: string;
 }

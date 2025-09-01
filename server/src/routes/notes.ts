@@ -2,7 +2,7 @@ import Router, { Response } from "express";
 import dotenv from "dotenv";
 import { authenticateAccessToken } from "../middleware/authMiddleware";
 import * as noteModel from "../models/note";
-import { NotePayload, ProtectedRequest } from "../types";
+import { EncryptedNote, NotePayload, ProtectedRequest } from "../types";
 
 const notesRouter = Router();
 dotenv.config();
@@ -11,6 +11,7 @@ function isNotePayload(payload: any): payload is NotePayload {
     return (
         typeof payload === "object" &&
         payload !== null &&
+        (typeof payload.id === "number" || payload.id === undefined) &&
         typeof payload.title === "string" &&
         typeof payload.titleIV === "string" &&
         typeof payload.content === "string" &&
@@ -27,10 +28,20 @@ notesRouter.get(
     authenticateAccessToken,
     async (req: ProtectedRequest, res: Response) => {
         const notes = await noteModel.getNotesByUserId(req.userData!.id);
+        const notesClient: EncryptedNote[] = notes.map((n) => ({
+            id: n.id,
+            title: n.title,
+            titleIV: n.title_iv,
+            content: n.content,
+            contentIV: n.content_iv,
+            wrappedNoteKey: n.wrapped_note_key,
+            noteKeyIV: n.note_key_iv,
+            createdAt: n.created_at,
+        }));
         res.json({
             success: true,
             message: "Notes fetched successfully",
-            notes: notes,
+            notes: notesClient,
         });
     }
 );
@@ -39,32 +50,32 @@ notesRouter.put(
     "/",
     authenticateAccessToken,
     async (req: ProtectedRequest, res: Response) => {
-        const title = req.body.title;
-        const content = req.body.content;
-        const noteId = req.body.noteId;
-
-        if (!title || content === undefined || noteId === undefined) {
-            return res.status(400).json({
+        const payload = req.body;
+        // console.log(payload);
+        if (isNotePayload(payload) && payload.id !== undefined) {
+            try {
+                await noteModel.updateNote(
+                    payload.title,
+                    payload.titleIV,
+                    payload.content,
+                    payload.contentIV,
+                    payload.id!,
+                    req.userData!.id
+                );
+                return res.json({
+                    success: true,
+                    message: "Note saved successfully",
+                });
+            } catch (err) {
+                return res.status(500).json({
+                    success: false,
+                    message: "Internal Server Error",
+                });
+            }
+        } else {
+            res.status(400).json({
                 success: false,
-                message: "Missing parameters",
-            });
-        }
-
-        try {
-            await noteModel.updateNote(
-                title,
-                content,
-                noteId,
-                req.userData!.id
-            );
-            return res.json({
-                success: true,
-                message: "Note saved successfully",
-            });
-        } catch (err) {
-            return res.status(500).json({
-                success: false,
-                message: "Internal Server Error",
+                message: "Invalid request: Missing or invalid parameters",
             });
         }
     }
@@ -75,7 +86,6 @@ notesRouter.post(
     authenticateAccessToken,
     async (req: ProtectedRequest, res: Response) => {
         const payload = req.body;
-        console.log(payload);
         if (isNotePayload(payload)) {
             try {
                 const dbRes = await noteModel.createNote(
@@ -87,6 +97,9 @@ notesRouter.post(
                     payload.noteKey.wrappedNoteKey,
                     payload.noteKey.noteKeyIV
                 );
+                // TODO: why aren't we sending it in camel case?
+                // This might actually be better for the model to be
+                // responsible for - with aliases
                 res.json({
                     success: true,
                     message: "New note successfully added",

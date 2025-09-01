@@ -51,7 +51,7 @@ const NoteEditor = ({
                             />
                         </Box>
                         <Typography variant="caption" mt={2}>
-                            {new Date(note.created_at).toLocaleString()}
+                            {new Date(note.createdAt!).toLocaleString()}
                         </Typography>
                         <Box gap={1} display="flex" flexDirection="row">
                             <Button

@@ -2,7 +2,7 @@ export interface Note {
     id: number | undefined;
     title: string;
     content: string;
-    created_at: string | undefined;
+    createdAt: string | undefined;
 }
 
 export interface EncryptedNote extends Note {
@@ -10,6 +10,11 @@ export interface EncryptedNote extends Note {
     contentIV: string;
     wrappedNoteKey: string;
     noteKeyIV: string;
+}
+
+export interface NotePreview {
+    id: number;
+    title: string;
 }
 
 export type ApiResponse = {
@@ -44,6 +49,7 @@ export interface EncryptionDataBase64 {
 }
 
 export interface NotePayload {
+    id: number | undefined;
     title: string;
     titleIV: string;
     content: string;

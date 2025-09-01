@@ -18,6 +18,7 @@ export const handleTokenRenew = async (auth: AuthContextType) => {
         const res = await api.get("/auth/renew");
         if (res.data.success) {
             auth.setAccessToken(res.data.accessToken);
+            return res.data.accessToken;
         } else {
             console.error(res.data.message);
             throw new Error(res.data.message);

@@ -3,6 +3,7 @@ import type {
     EncryptionDataBase64,
     Note,
     NotePayload,
+    NotePreview,
 } from "../types";
 import { base64ToUint8Array, uint8ArrayToBase64 } from "./encoding";
 import {
@@ -237,8 +238,8 @@ const generateNoteKey = async (): Promise<CryptoKey> => {
 const wrapNoteKey = async (noteKey: CryptoKey, masterKey: CryptoKey) => {
     const iv = crypto.getRandomValues(new Uint8Array(12));
 
-    console.log("note", noteKey);
-    console.log("master", masterKey);
+    // console.log("note", noteKey);
+    // console.log("master", masterKey);
     const wrapped = await crypto.subtle.wrapKey("raw", noteKey, masterKey, {
         name: "AES-GCM",
         iv,
@@ -325,7 +326,7 @@ const decryptNote = async (
         id: encryptedNote.id,
         title: new TextDecoder().decode(titlePlaintext),
         content: new TextDecoder().decode(contentPlaintext),
-        created_at: encryptedNote.created_at,
+        createdAt: encryptedNote.createdAt,
     };
     return note;
 };
@@ -344,6 +345,7 @@ export const handleNewNote = async (
     );
 
     const payload: NotePayload = {
+        id: undefined,
         title: encryptedNote.title,
         titleIV: encryptedNote.titleIV,
         content: encryptedNote.content,
@@ -351,6 +353,29 @@ export const handleNewNote = async (
         noteKey: wrappedNoteKeyObj,
     };
     return payload;
+};
+
+export const handleNoteEncryption = async (
+    note: Note,
+    wrappedNoteKeyBase64: string,
+    noteKeyIVBase64: string,
+    masterKey: CryptoKey
+): Promise<EncryptedNote> => {
+    const noteKey = await unwrapNoteKey(
+        wrappedNoteKeyBase64,
+        noteKeyIVBase64,
+        masterKey
+    );
+    // const wrappedNoteKeyObj = await wrapNoteKey(noteKey, masterKey);
+
+    const encryptedNote = await encryptNote(
+        note,
+        noteKey,
+        wrappedNoteKeyBase64,
+        noteKeyIVBase64
+    );
+
+    return encryptedNote;
 };
 
 export const handleNoteDecryption = async (
@@ -366,12 +391,55 @@ export const handleNoteDecryption = async (
     return note;
 };
 
+export const decryptNoteToPreview = async (
+    encryptedNote: EncryptedNote,
+    masterKey: CryptoKey
+): Promise<NotePreview> => {
+    const noteKey = await unwrapNoteKey(
+        encryptedNote.wrappedNoteKey,
+        encryptedNote.noteKeyIV,
+        masterKey
+    );
+    const titleIV = base64ToUint8Array(encryptedNote.titleIV);
+    const encryptedTitle = base64ToUint8Array(encryptedNote.title);
+    const titlePlaintext = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: titleIV },
+        noteKey,
+        encryptedTitle
+    );
+
+    return {
+        id: encryptedNote.id!,
+        title: new TextDecoder().decode(titlePlaintext),
+    };
+};
+
+export const allNotesToPreviewsArray = async (
+    encryptedNotes: EncryptedNote[],
+    masterKey: CryptoKey
+) => {
+    let previews: NotePreview[] = [];
+
+    for (let i = 0; i < encryptedNotes.length; i++) {
+        const preview = await decryptNoteToPreview(
+            encryptedNotes[i],
+            masterKey
+        );
+        previews[i] = preview;
+    }
+
+    return previews;
+};
+
 export default {
     handleRegister,
     handleLogin,
     handleNoAccessTokenLogin,
     handleLogout,
     handleNewNote,
+    handleNoteEncryption,
     decryptNote,
     handleNoteDecryption,
+    allNotesToPreviewsArray,
+    decryptNoteToPreview,
 };

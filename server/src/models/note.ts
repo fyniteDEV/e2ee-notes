@@ -2,9 +2,11 @@ import { pool } from "../db/db";
 
 export const getNotesByUserId = async (id: string) => {
     const query = `
-        SELECT id, title, content, created_at
+        SELECT id, title, title_iv, content, content_iv,
+            wrapped_note_key, note_key_iv, created_at
         FROM notes
         WHERE user_id = $1
+        ORDER BY id ASC;
     `;
     const values = [id];
 
@@ -76,16 +78,19 @@ export const deleteNote = async (id: number, userId: string) => {
 
 export const updateNote = async (
     title: string,
+    titleIV: string,
     content: string,
+    contentIV: string,
     noteId: number,
     userId: string
 ) => {
     const query = `
         UPDATE notes
-        SET title = $1, content = $2
-        WHERE id = $3 AND user_id = $4;
+        SET title = $1, title_iv = $2, content = $3,
+            content_iv = $4
+        WHERE id = $5 AND user_id = $6;
     `;
-    const values = [title, content, noteId, userId];
+    const values = [title, titleIV, content, contentIV, noteId, userId];
 
     try {
         const res = await pool.query(query, values);
