@@ -68,8 +68,6 @@ authRouter.post("/register", async (req, res) => {
             });
         }
 
-        console.log(payload);
-
         const [passwordHash, foundUser] = await Promise.all([
             bcrypt.hash(payload.password, 12),
             userModel.getUserByEmailOrUsername(payload.email, payload.username),

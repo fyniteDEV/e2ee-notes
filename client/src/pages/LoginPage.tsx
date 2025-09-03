@@ -47,7 +47,7 @@ const LoginPage = () => {
 
             const srvRes: LoginSrvResponse = res.data;
             if (srvRes.success) {
-                console.log(srvRes);
+                // console.log(srvRes);
                 auth.setAccessToken(srvRes.accessToken!);
 
                 const masterKey = await encryptionTools.handleLogin(
@@ -84,7 +84,6 @@ const LoginPage = () => {
 
     useEffect(() => {
         if (success && auth.accessToken !== null) {
-            // console.log("AT", auth.accessToken);
             navigate("/note");
         }
     }, [success]);

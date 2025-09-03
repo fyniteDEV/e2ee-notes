@@ -125,7 +125,6 @@ const NotePage = () => {
     useEffect(() => {
         if (notes.length > prevNotesLength.current) {
             const newest = notes[notes.length - 1];
-            console.log("newests", newest);
             handleSelectNote(newest.id!);
             prevNotesLength.current = notes.length;
         }
@@ -151,7 +150,7 @@ const NotePage = () => {
                 auth.accessToken!
             );
             if (res.data.success) {
-                console.log("notes fetched", res.data.notes);
+                // console.log("notes fetched", res.data.notes);
                 return res.data.notes;
             } else {
                 handleNewAlert(

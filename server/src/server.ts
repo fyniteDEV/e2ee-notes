@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-dotenv.config();
 import express from "express";
 import morgan from "morgan";
 import * as db from "./db/db";
@@ -11,8 +10,9 @@ import notesRouter from "./routes/notes";
 
 const app = express();
 const port = process.env.PORT || 3500;
+dotenv.config();
 
-// ERROR HANDLING
+// Error handling and graceful shutdown
 process.on("uncaughtException", (err) => {
     console.error("Uncaught Exception:", err);
     closeServer();

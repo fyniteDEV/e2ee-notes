@@ -15,8 +15,10 @@ import {
 } from "./indexedDbHelpers";
 
 // ## ON REGISTER ##
+// 1:   generate master key
+// 2:   generate password key encryption key
+// 3:   wrap the master key with the password key encryption key
 
-// Used to unlock note keys; never stored outside the memory as is, without encryption
 const generateMasterKey = (): Promise<CryptoKey> => {
     return crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
@@ -25,7 +27,6 @@ const generateMasterKey = (): Promise<CryptoKey> => {
     );
 };
 
-// Password Key Encryption Key: used to wrap the master key for storage on the server side
 const generatePasswordKEK = async (
     password: string,
     iterations: number = 300000
@@ -75,11 +76,7 @@ const wrapMasterWithPasswordKEK = async (
 ) => {
     // KEK_password
     const { passwordKEK, salt, kdfParams } = passKEKObject;
-
-    // Create initialization vector
     const iv = crypto.getRandomValues(new Uint8Array(12));
-
-    // Wrap master key with password KEK
     const wrapped = await crypto.subtle.wrapKey("raw", masterKey, passwordKEK, {
         name: "AES-GCM",
         iv,
@@ -97,14 +94,20 @@ const wrapMasterWithPasswordKEK = async (
 
 export const handleRegister = async (password: string) => {
     const K_master = await generateMasterKey();
-    console.log(K_master);
     const passKEKObject = await generatePasswordKEK(password);
-    console.log(passKEKObject);
     // Send this in POST body along with credentials
     return await wrapMasterWithPasswordKEK(passKEKObject, K_master);
 };
 
 // ## ON LOGIN ##
+// If logged in with user credentials:
+// 1:   unwrap the wrapped master key using the password provided
+// 2:   generate and store device key encryption key
+// 3:   wrap the master key with the device key and store that
+//
+// If logged in using refresh token (password not available):
+// 1:   get device key encryption key and the wrapped master key
+// 2:   derive the master key
 
 const unwrapMasterWithPassword = async (
     encryption: EncryptionDataBase64,
@@ -151,7 +154,6 @@ const unwrapMasterWithPassword = async (
     return K_master;
 };
 
-// Device Key Encryption Key: used to wrap the master key with on the client side
 const generateDeviceKEK = (): Promise<CryptoKey> => {
     return crypto.subtle.generateKey(
         { name: "AES-GCM", length: 256 },
@@ -160,8 +162,6 @@ const generateDeviceKEK = (): Promise<CryptoKey> => {
     );
 };
 
-// To store the master key on the client side we wrap the master key with the
-// device key
 const wrapAndStoreMasterWithDeviceKEK = async (
     K_master: CryptoKey,
     KEK_device: CryptoKey
@@ -177,11 +177,11 @@ const wrapAndStoreMasterWithDeviceKEK = async (
                 iv,
             }
         );
-        console.log("wrapped", wrapped);
+        // console.log("wrapped", wrapped);
         await storeWrappedMasterKey(wrapped, iv);
-        console.log("wrapped and stored");
+        // console.log("wrapped and stored");
     } catch (error) {
-        console.log("error", error);
+        console.log("Error while wrapping K_master with KEK_device", error);
     }
 };
 
@@ -198,7 +198,6 @@ export const handleLogin = async (
     return K_master;
 };
 
-// Unwrap for logging in without access token (refresh token used)
 export const handleNoAccessTokenLogin = async (): Promise<CryptoKey> => {
     const KEK_device = await getDeviceKey();
     if (!KEK_device) {
@@ -220,12 +219,27 @@ export const handleNoAccessTokenLogin = async (): Promise<CryptoKey> => {
 };
 
 // ## ON LOGOUT ##
+// -    clear keys from local database (IndexedDB)
 
 export const handleLogout = async () => {
     await clearKeys();
 };
 
 // ## NOTE KEYS ##
+// If a new note is being added:
+// 1:   generate note key
+// 2:   encrypt the title and the content of the note using note key
+// 3:   wrap the note key with the master key (never store raw note keys
+//      outside of memory)
+// 4:   send the encrypted note to the server along with the wrapped
+//      note key
+//
+// For previews:
+// -    only decrypt the titles, the rest should be decrypted if the user
+//      wants to view the note in full
+
+// If a note is to be viewed fully:
+// -    decrypt using master key
 
 const generateNoteKey = async (): Promise<CryptoKey> => {
     return await crypto.subtle.generateKey(
@@ -237,9 +251,6 @@ const generateNoteKey = async (): Promise<CryptoKey> => {
 
 const wrapNoteKey = async (noteKey: CryptoKey, masterKey: CryptoKey) => {
     const iv = crypto.getRandomValues(new Uint8Array(12));
-
-    // console.log("note", noteKey);
-    // console.log("master", masterKey);
     const wrapped = await crypto.subtle.wrapKey("raw", noteKey, masterKey, {
         name: "AES-GCM",
         iv,

@@ -51,7 +51,6 @@ notesRouter.put(
     authenticateAccessToken,
     async (req: ProtectedRequest, res: Response) => {
         const payload = req.body;
-        // console.log(payload);
         if (isNotePayload(payload) && payload.id !== undefined) {
             try {
                 await noteModel.updateNote(
