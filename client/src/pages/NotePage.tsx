@@ -267,6 +267,8 @@ const NotePage = () => {
         setDrawerOpen(false);
     };
 
+    // TODO: when changing note selection only edited notes should be saved,
+    // if a note hasn't be touched, just viewed, then it shouldn't be
     const handleSaveNote = async () => {
         if (selectedNoteId === -1) {
             return;
@@ -359,22 +361,20 @@ const NotePage = () => {
 
         // update on the front-end
         setConfirmDialogOpen(false);
-        setNotes((prevNotes) => {
-            const index = prevNotes.findIndex((n) => n.id === selectedNoteId);
-            const updatedNotes = prevNotes.filter(
-                (n) => n.id !== selectedNoteId
-            );
 
-            if (updatedNotes.length > 0) {
-                const newSelectedNote =
-                    updatedNotes[index - 1] || updatedNotes[index];
-                setSelectedNoteId(newSelectedNote.id!);
-            } else {
-                setSelectedNoteId(-1);
-            }
+        const updatedPreviews = previews.filter((p) => p.id !== selectedNoteId);
+        setPreviews(updatedPreviews);
+        const updatedNotes = notes.filter((n) => n.id !== selectedNoteId);
+        setNotes(updatedNotes);
 
-            return updatedNotes;
-        });
+        const index = previews.findIndex((n) => n.id === selectedNoteId);
+        if (updatedNotes.length > 0) {
+            const newSelectedNote =
+                updatedNotes[index - 1] || updatedNotes[index];
+            handleSelectNote(newSelectedNote.id!);
+        } else {
+            handleSelectNote(-1);
+        }
     };
 
     // FIXME: alerts should be placed in the bottom for better to not cover the editor
