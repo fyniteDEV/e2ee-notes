@@ -268,8 +268,6 @@ const NotePage = () => {
         setDrawerOpen(false);
     };
 
-    // TODO: when changing note selection only edited notes should be saved,
-    // if a note hasn't be touched, just viewed, then it shouldn't be
     const handleSaveNote = async () => {
         if (selectedNoteId === -1) {
             return;
@@ -378,7 +376,6 @@ const NotePage = () => {
         }
     };
 
-    // FIXME: alerts should be placed in the bottom for better to not cover the editor
     const handleNewAlert = (message: string, severity: "success" | "error") => {
         setAlertMessage(message);
         setAlertSeverity(severity);
@@ -386,6 +383,10 @@ const NotePage = () => {
     };
 
     const handleLogout = async () => {
+        if (noteEdited) {
+            await handleSaveNote();
+        }
+
         if (accessTokenIsExpired(auth.accessToken!)) {
             try {
                 await handleTokenRenew(auth);
