@@ -114,12 +114,10 @@ const NotePage = () => {
         loadAllNotes();
     }, [masterKeyProvider.masterKey]);
 
-    // FIXME: doesn't work at all
     // set initial selected note to the last added one
     useEffect(() => {
         if (selectedNoteId === -1 && notes.length >= 1) {
-            setSelectedNoteId(notes[notes.length - 1].id!);
-            console.log("last added one", notes[notes.length - 1].id!);
+            handleSelectNote(notes[notes.length - 1].id!);
         }
     }, [previews]);
 
