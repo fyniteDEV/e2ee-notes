@@ -97,9 +97,6 @@ notesRouter.post(
                     payload.noteKey.wrappedNoteKey,
                     payload.noteKey.noteKeyIV
                 );
-                // TODO: why aren't we sending it in camel case?
-                // This might actually be better for the model to be
-                // responsible for - with aliases
                 res.json({
                     success: true,
                     message: "New note successfully added",

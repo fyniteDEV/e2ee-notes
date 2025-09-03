@@ -99,6 +99,10 @@ const NotePage = () => {
     useEffect(() => {
         const loadAllNotes = async () => {
             const encryptedNotes = await fetchAllNotes();
+            if (!encryptedNotes) {
+                return;
+            }
+
             const p = await encryptionTools.allNotesToPreviewsArray(
                 encryptedNotes,
                 masterKeyProvider.masterKey!
@@ -130,6 +134,10 @@ const NotePage = () => {
     }, [notes.length]);
 
     const fetchAllNotes = async () => {
+        if (!auth.accessToken) {
+            return console.warn("Couldn't fetch notes: accessToken is null");
+        }
+
         if (accessTokenIsExpired(auth.accessToken!)) {
             try {
                 await handleTokenRenew(auth);
@@ -239,21 +247,11 @@ const NotePage = () => {
                 payload,
                 accessToken
             );
-            const resNote = res.data.notes[0];
-            const encryptedNote: EncryptedNote = {
-                id: resNote.id,
-                title: resNote.title,
-                titleIV: resNote.title_iv,
-                content: resNote.content,
-                contentIV: resNote.content_iv,
-                createdAt: resNote.created_at,
-                wrappedNoteKey: resNote.wrapped_note_key,
-                noteKeyIV: resNote.note_key_iv,
-            };
-            setNotes((prevNotes) => [...prevNotes, encryptedNote]);
+            const resNote: EncryptedNote = res.data.notes[0];
+            setNotes((prevNotes) => [...prevNotes, resNote]);
 
             const preview = await encryptionTools.decryptNoteToPreview(
-                encryptedNote,
+                resNote,
                 masterKeyProvider.masterKey!
             );
             setPreviews((prevPreviews) => [...prevPreviews, preview]);

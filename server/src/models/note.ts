@@ -34,8 +34,15 @@ export const createNote = async (
         INSERT INTO notes (user_id, title, title_iv, content,
             content_iv, wrapped_note_key, note_key_iv)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, title, title_iv, content, content_iv,
-            wrapped_note_key, note_key_iv, created_at;
+        RETURNING
+            id,
+            title,
+            title_iv AS "titleIV",
+            content,
+            content_iv AS "contentIV",
+            wrapped_note_key AS "wrappedNoteKey",
+            note_key_iv AS "noteKeyIV",
+            created_at AS "createdAt";
     `;
     const values = [
         userId,
