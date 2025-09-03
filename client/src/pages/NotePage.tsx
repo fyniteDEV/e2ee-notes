@@ -50,9 +50,9 @@ const NotePage = () => {
     ]);
     const prevNotesLength = useRef(notes.length);
     const [editedNote, setEditedNote] = useState<Note>();
+    const [noteEdited, setNoteEdited] = useState(false);
     const [previews, setPreviews] = useState<NotePreview[]>([]);
     const [selectedNoteId, setSelectedNoteId] = useState(-1);
-    // const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -172,17 +172,13 @@ const NotePage = () => {
 
     const handleSelectNote = async (id: number) => {
         setDrawerOpen(false);
-        handleSaveNote();
+        if (noteEdited) {
+            handleSaveNote();
+        }
 
-        console.log("edited note", editedNote);
         if (editedNote?.title === "") {
             return setInvalidTitle(true);
         }
-
-        console.log(
-            "found note",
-            notes.find((n) => n.id === id)
-        );
 
         if (notes.find((n) => n.id === id)) {
             const decrypted = await encryptionTools.handleNoteDecryption(
@@ -194,6 +190,8 @@ const NotePage = () => {
         } else {
             setSelectedNoteId(-1);
         }
+
+        setNoteEdited(false);
     };
 
     const handleTitleEdit = (title: string) => {
@@ -205,10 +203,13 @@ const NotePage = () => {
         setPreviews((prev) =>
             prev.map((p) => (p.id === selectedNoteId ? { ...p, title } : p))
         );
+
+        setNoteEdited(true);
     };
 
     const handleContentEdit = (content: string) => {
         setEditedNote((prev) => (prev ? { ...prev, content } : undefined));
+        setNoteEdited(true);
     };
 
     const handleAddNote = async () => {
