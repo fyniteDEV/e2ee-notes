@@ -542,6 +542,12 @@ const NotePage = () => {
                                 onSave={handleSaveNote}
                             />
                         </Box>
+                        <AlertSnackbar
+                            message={alertMessage}
+                            severity={alertSeverity}
+                            open={alertOpen}
+                            setOpen={setAlertOpen}
+                        />
                     </>
                 )}
             </Box>
